@@ -1,0 +1,39 @@
+# Godot 4
+.godot/
+*.translation
+export.cfg
+export_presets.cfg
+.import/
+
+# Builds
+build/
+builds/
+*.exe
+*.pck
+*.zip
+*.apk
+*.aab
+*.ipa
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+*.tmp
+*.log
+.vscode/
+.idea/
+
+# Local tool paths
+docs/godot_path.txt
+
+# Secrets and machine-local env
+.env
+.env.*
+*.pem
+*.key
+credentials.json
+**/secrets.json
+
+# Crash dumps
+*.dmp
+mono_crash.*.json
