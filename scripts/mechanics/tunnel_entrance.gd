@@ -59,4 +59,3 @@ func _on_body_entered(body: Node) -> void:
 		discovered = true
 		var eid: StringName = body.enemy_id if "enemy_id" in body else StringName(body.name)
 		EventBus.tunnel_entrance_discovered.emit(entrance_id, eid)
-		EventBus.status_message.emit("敌军发现了入口：%s" % hint_text, 2.5)

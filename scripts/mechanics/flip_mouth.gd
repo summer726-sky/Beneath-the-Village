@@ -25,7 +25,6 @@ func get_interact_hint() -> String:
 func interact(_by: Node) -> void:
 	using_alt = not using_alt
 	_apply()
-	EventBus.status_message.emit(hint_open if using_alt else hint_closed, 2.4)
 
 func _apply() -> void:
 	_set_board(get_node_or_null("BoardClosed"), not using_alt)

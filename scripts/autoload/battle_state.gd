@@ -19,6 +19,7 @@ var player_position: Vector3 = Vector3.ZERO
 var player_in_tunnel: bool = false
 var player_in_lookout: bool = false
 var lookout_exposed: bool = false
+var recon_exposed: bool = false
 var player_at_firing_port: bool = false
 var firing_port_id: StringName = &""
 var firing_port_expose_time: float = 0.0
@@ -26,7 +27,7 @@ var firing_port_expose_time: float = 0.0
 # 士气与敌军
 var enemy_morale: int = 4
 const MORALE_MAX := 4
-var enemies_alive: int = 4
+var enemies_alive: int = 6
 var commander_alive: bool = true
 var enemies_retreated: bool = false
 
@@ -65,11 +66,12 @@ func reset() -> void:
 	player_in_tunnel = false
 	player_in_lookout = false
 	lookout_exposed = false
+	recon_exposed = false
 	player_at_firing_port = false
 	firing_port_id = &""
 	firing_port_expose_time = 0.0
 	enemy_morale = MORALE_MAX
-	enemies_alive = 4
+	enemies_alive = 6
 	commander_alive = true
 	enemies_retreated = false
 	villagers_safe = 0

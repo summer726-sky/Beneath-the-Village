@@ -49,8 +49,6 @@ func _run() -> void:
 		Vector3(2.4, -4.2, 0.0),
 		Vector3(-10.0, -4.2, 0.0),
 		Vector3(-10.0, -4.2, -3.2),
-		Vector3(-10.0, -4.2, 2.4),
-		Vector3(-12.0, -4.2, 2.4),
 	]
 	for p in tunnel_points:
 		var y := await _settle(probe, p, Vector3.ZERO, 25)
@@ -70,6 +68,10 @@ func _run() -> void:
 		var y2 := await _settle(probe, p, shove, 40)
 		if y2 < -6.0:
 			errors.append("侧向走出地道 %s y=%.2f" % [p, y2])
+
+	var y_drain := await _settle(probe, Vector3(-10.0, -5.05, -3.2), Vector3.ZERO, 30)
+	if y_drain < -6.2 or y_drain > -4.8:
+		errors.append("下层排水没有落点 y=%.2f" % y_drain)
 
 	var surface_points: Array[Vector3] = [
 		Vector3(-12.0, 0.4, 2.4),

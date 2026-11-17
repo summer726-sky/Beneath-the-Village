@@ -31,7 +31,6 @@ func interact(_by: Node) -> void:
 		EventBus.status_message.emit("先拉响警报，再抽驴槽下面的撑棍。", 2.4)
 		return
 	arm()
-	EventBus.status_message.emit("撑棍已抽掉。踩两侧会坠落，中间木轴仍可走。", 2.6)
 
 func try_trigger_from(body: Node3D) -> bool:
 	return _attempt_trigger(body)
@@ -49,7 +48,6 @@ func _attempt_trigger(body: Node3D) -> bool:
 		if absf(local_x) <= _safe_half_width:
 			return false
 		# 玩家踩两侧也会触发，但不伤害友方——仅警告
-		EventBus.status_message.emit("小心！你踩到了翻板边缘", 2.0)
 		return false
 	if not body.is_in_group("enemies"):
 		return false
@@ -63,7 +61,6 @@ func _attempt_trigger(body: Node3D) -> bool:
 	EventBus.trap_triggered.emit(trap_id, vid)
 	if body.has_method("take_damage"):
 		body.take_damage(1, self)
-	EventBus.status_message.emit("翻板陷阱触发！一名敌军坠入。", 3.0)
 	BattleState.log_event("翻板触发")
 	return true
 

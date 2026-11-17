@@ -19,7 +19,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if BattleState.battle_over:
 		return
-	if BattleState.water_started and not BattleState.water_barrier_closed and not BattleState.bunker_flooded:
+	if BattleState.water_started and not BattleState.water_barrier_closed and not BattleState.bunker_flooded and _engineer_alive():
 		BattleState.water_progress = minf(1.0, BattleState.water_progress + delta / water_flood_seconds)
 		if BattleState.water_progress >= 1.0:
 			BattleState.bunker_flooded = true
@@ -30,22 +30,10 @@ func adjust_morale(delta_val: int, reason: String) -> void:
 	if BattleState.battle_over or BattleState.enemies_retreated:
 		return
 	BattleState.enemy_morale = clampi(BattleState.enemy_morale + delta_val, 0, BattleState.MORALE_MAX)
-	BattleState.log_event("士气 %+d（%s）→ %d" % [delta_val, reason, BattleState.enemy_morale])
-	_check_retreat()
+	BattleState.log_event("%s，剩余敌军 %d" % [reason, BattleState.enemies_alive])
 
 func _check_retreat() -> void:
-	if BattleState.enemies_retreated or BattleState.battle_over:
-		return
-	var should_retreat := false
-	var reason := &""
-	if BattleState.enemy_morale <= 0:
-		should_retreat = true
-		reason = &"士气崩溃，敌军撤退"
-	elif not BattleState.commander_alive and BattleState.enemies_alive < 2:
-		should_retreat = true
-		reason = &"分队长阵亡且残余不足，敌军撤退"
-	if should_retreat:
-		_trigger_retreat(reason)
+	return
 
 func _trigger_retreat(reason: StringName) -> void:
 	BattleState.enemies_retreated = true
@@ -85,7 +73,7 @@ func _fail(code: StringName, reason: StringName) -> void:
 
 func check_annihilation_victory() -> void:
 	if BattleState.enemies_alive <= 0 and not BattleState.battle_over:
-		_win(&"ANNIHILATION", &"四名敌军全部消灭")
+		_win(&"ANNIHILATION", &"敌军全部消灭")
 
 func _on_enemy_killed(enemy_id: StringName, role: StringName) -> void:
 	BattleState.enemies_alive = maxi(0, BattleState.enemies_alive - 1)
@@ -126,7 +114,6 @@ func _on_alarm(_by_player: bool) -> void:
 func _on_water_started() -> void:
 	BattleState.water_started = true
 	BattleState.water_progress = 0.0
-	EventBus.status_message.emit("敌军开始灌水！尽快关闭挡水隔板或击倒工兵。", 5.0)
 
 func _on_player_died(lives_remaining: int) -> void:
 	if lives_remaining <= 0 and BattleState.allies_alive <= 0:

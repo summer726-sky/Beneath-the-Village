@@ -69,24 +69,22 @@ func _process(delta: float) -> void:
 		_f12_latched = false
 
 func _update_static_intro() -> void:
-	intro_text.text = "冀中平原·冉庄\n\n两个入口并列。探索：熟悉封闭地道，E 与村民、战友交谈。\n警戒：人在树洞里，朝东的缝看敌军。\n地道口藏在树洞、锅台、水井和东屋，地面没有敞口。\n探索时按 B，会钻进树洞并开始警戒。空格直接开始警戒。\n\nWASD · 鼠标 · E 交互 · G 喊话 · Q 战况"
+	intro_text.text = "冀中平原·冉庄\n\n两个入口并列。探索：熟悉封闭地道，E 与村民、战友交谈。\n警戒：人在树洞里，朝东的缝看敌军。开枪会暴露，敌军会压制并加速进村。\n地道口在树洞、东屋、水井、驴槽和北房。锅台是射击位，不是入口。村民躲进北房暗室。\n探索时按 B，会钻进树洞并开始警戒。空格直接开始警戒。\n\nWASD · 鼠标 · E 交互 · G 喊话 · Q 战况"
 
 func _update_hud() -> void:
 	ammo_label.text = "弹药 %d/%d  暗室 %d" % [BattleState.player_ammo, BattleState.player_max_ammo, BattleState.ammo_cache_stock]
 	lives_label.text = "生命 %d" % BattleState.player_lives
-	morale_label.text = "敌军士气 %d" % BattleState.enemy_morale
+	morale_label.text = "剩余敌军 %d" % BattleState.enemies_alive
 	villagers_label.text = "村民 安全%d / 被捕%d / 共%d" % [
 		BattleState.villagers_safe, BattleState.villagers_captured, BattleState.villagers_total
 	]
 	allies_label.text = "战友存活 %d" % BattleState.allies_alive
-	if BattleState.water_started and not BattleState.water_barrier_closed:
-		objective_label.text = "紧急：关闭挡水隔板！灌水进度 %.0f%%" % (BattleState.water_progress * 100.0)
-	elif BattleState.exploring:
+	if BattleState.exploring:
 		objective_label.text = "探索中。地道是封死的。E 交谈。按 B 回到树洞开始警戒。"
 	elif BattleState.phase == BattleState.Phase.OBSERVE:
-		objective_label.text = "你在树洞里。看东边的敌军，E 进地道回东屋拉钟。"
+		objective_label.text = "你在树洞里。地面火力很密。E 进地道回东屋拉钟，先让村民躲进北房。"
 	elif BattleState.phase == BattleState.Phase.COMBAT:
-		objective_label.text = "村民隐蔽，战友已上阵地。G 近距离喊话，可能被听见。"
+		objective_label.text = "保护村民。敌军会进地道搜查。用地道打，直到全部消灭。"
 
 func _on_hint(text: String) -> void:
 	hint_label.text = text
@@ -99,20 +97,14 @@ func _fill_overview() -> void:
 	overview_text.text = "\n".join([
 		"—— 战场概况 ——",
 		"阶段：%s" % str(BattleState.phase),
-		"敌军存活：%d  士气：%d  分队长：%s" % [
-			BattleState.enemies_alive, BattleState.enemy_morale,
+		"敌军存活：%d  分队长：%s" % [
+			BattleState.enemies_alive,
 			"在" if BattleState.commander_alive else "亡"
 		],
 		"村民：安全 %d / 被捕 %d" % [BattleState.villagers_safe, BattleState.villagers_captured],
 		"战友存活：%d" % BattleState.allies_alive,
-		"警报：%s  翻板：%s  灌水：%s  隔板：%s" % [
-			"已响" if BattleState.alarm_rung else "未响",
-			"已触发" if BattleState.trap_sprung else "待命",
-			"进行中" if BattleState.water_started else "未开始",
-			"已关" if BattleState.water_barrier_closed else "开"
-		],
 		"",
-		"胜利：全歼 / 士气破撤退 / 挡水守住掩体",
+		"胜利：敌军全部消灭",
 		"失败：两村民被捕 / 掩体进水 / 团灭",
 		"注意：单纯隐蔽或搜索超时不算胜利。"
 	])

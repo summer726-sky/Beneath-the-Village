@@ -26,7 +26,13 @@ var shoot_cooldown: float = 0.0
 var search_timer: float = 0.0
 var target_entrance: Node3D = null
 var _descended: bool = false
+var _pour_wait: float = 0.0
+var _probe_time: float = 0.0
+var _probe_i: int = 0
+var _return_pos: Vector3 = Vector3.ZERO
+var _probe_path: Array[Vector3] = []
 var _mesh: MeshInstance3D
+var _head: MeshInstance3D
 
 func _ready() -> void:
 	add_to_group("enemies")
@@ -76,6 +82,7 @@ func _build_visual() -> void:
 	head.position = Vector3(0, 1.85, 0)
 	head.material_override = mat
 	add_child(head)
+	_head = head
 	var tag := Label3D.new()
 	tag.text = "敌军·%s" % role_name
 	tag.font_size = 48
@@ -138,6 +145,10 @@ func setup_route(points: Array) -> void:
 
 func _do_approach(delta: float) -> void:
 	var spd := 1.2 if not BattleState.alarm_rung else move_speed
+	if BattleState.recon_exposed and not BattleState.alarm_rung:
+		spd *= 1.75
+		if has_long_gun and shoot_cooldown <= 0.0 and _can_see_player():
+			_shoot_player()
 	if route.is_empty():
 		var gate := get_tree().get_first_node_in_group("village_gate")
 		if gate:
@@ -159,19 +170,25 @@ func _do_approach(delta: float) -> void:
 
 func _do_search(delta: float) -> void:
 	search_timer += delta
-	# 巡逻：在院落入口线索点之间移动
+	if BattleState.recon_exposed and not BattleState.alarm_rung and has_long_gun and shoot_cooldown <= 0.0 and _can_see_player():
+		_shoot_player()
+	if role == &"engineer" and BattleState.alarm_rung and not BattleState.water_started and _combat_mouth_found():
+		var well := get_tree().get_first_node_in_group("well")
+		if well and global_position.distance_to((well as Node3D).global_position) < 1.5:
+			_pour_wait += delta
+			velocity.x = 0.0
+			velocity.z = 0.0
+			if _pour_wait >= 2.0:
+				state = State.FLOOD
+				EventBus.water_started.emit()
+		elif well:
+			_pour_wait = 0.0
+			_move_toward((well as Node3D).global_position, delta, _recon_pace())
+		return
 	if target_entrance == null or global_position.distance_to(target_entrance.global_position) < 1.2:
 		target_entrance = _pick_search_point()
 	if target_entrance:
-		_move_toward(target_entrance.global_position, delta)
-	# 工兵在警报后一段时间尝试灌水
-	if role == &"engineer" and BattleState.alarm_rung and search_timer > 18.0 and not BattleState.water_started:
-		var well := get_tree().get_first_node_in_group("well")
-		if well and global_position.distance_to((well as Node3D).global_position) < 2.5:
-			state = State.FLOOD
-			EventBus.water_started.emit()
-		elif well:
-			_move_toward((well as Node3D).global_position, delta)
+		_move_toward(target_entrance.global_position, delta, _recon_pace())
 
 func _do_combat(delta: float) -> void:
 	if not has_player_contact:
@@ -186,22 +203,29 @@ func _do_combat(delta: float) -> void:
 	to_player.y = 0
 	if to_player.length() > 0.1:
 		look_at(global_position + to_player, Vector3.UP)
-	# 地面追击：仅在保持接触时靠近
 	if has_player_contact and not BattleState.player_in_tunnel:
-		if to_player.length() > 6.0:
+		if to_player.length() > 11.0:
 			_move_toward(known_player_pos, delta)
-		elif shoot_cooldown <= 0.0 and _can_see_player():
+		elif shoot_cooldown <= 0.0 and (_can_see_player() or BattleState.firing_port_expose_time > 0.0):
 			_shoot_player()
-	elif BattleState.player_in_tunnel and BattleState.firing_port_expose_time > 8.0:
-		if shoot_cooldown <= 0.0:
+	elif BattleState.player_in_tunnel and _descended:
+		var exposed := BattleState.firing_port_expose_time > 0.0
+		var close := to_player.length() < 6.5 and _can_see_player()
+		if (exposed or close) and shoot_cooldown <= 0.0:
 			_shoot_player()
-			EventBus.status_message.emit("敌军向射击孔还击！", 1.5)
+		elif to_player.length() > 2.2:
+			_move_toward(known_player_pos, delta, move_speed * 0.55)
+	elif BattleState.player_in_tunnel and not _descended:
+		if role == &"rifleman" and not _tunnel_occupied() and _combat_mouth_found():
+			_begin_probe()
+		else:
+			state = State.SEARCH
 
 func _do_guard(delta: float) -> void:
 	if target_entrance:
 		_move_toward(target_entrance.global_position, delta)
 		if global_position.distance_to(target_entrance.global_position) < 1.5 and shoot_cooldown <= 0.0:
-			if BattleState.player_in_tunnel and BattleState.firing_port_expose_time > 5.0:
+			if BattleState.player_in_tunnel and BattleState.firing_port_expose_time > 0.0:
 				_shoot_player()
 
 func _do_probe(delta: float) -> void:
@@ -213,17 +237,24 @@ func _do_probe(delta: float) -> void:
 	if not _descended:
 		_move_toward(target_entrance.global_position, delta, move_speed * 0.45)
 		if global_position.distance_to(target_entrance.global_position) < 1.15 and target_entrance.has_method("interact"):
+			_return_pos = global_position
 			target_entrance.interact(self)
 			_descended = true
+			_probe_time = 0.0
+			_probe_i = 0
+			_fit_tunnel_body(true)
+			_build_probe_path()
 		return
-	var dest := Vector3(8.0, global_position.y, 0.0)
-	var mouth := get_tree().get_first_node_in_group("combat_flip")
-	if mouth and mouth.has_method("is_dead_open") and mouth.is_dead_open():
-		dest = Vector3(2.6, global_position.y, -3.2)
-	_move_toward(dest, delta, move_speed * 0.4)
-	var trap := get_tree().get_first_node_in_group("flip_trap")
-	if trap and global_position.distance_to((trap as Node3D).global_position) < 1.2 and trap.has_method("try_trigger_from"):
-		trap.try_trigger_from(self)
+	_probe_time += delta
+	if _probe_time > 40.0 or _probe_i >= _probe_path.size():
+		_exit_probe()
+		return
+	var dest: Vector3 = _probe_path[_probe_i]
+	if global_position.distance_to(dest) < 1.15:
+		_probe_i += 1
+		return
+	_move_toward(dest, delta, move_speed * 0.55)
+	_check_tunnel_devices()
 
 func _do_flood(delta: float) -> void:
 	var well := get_tree().get_first_node_in_group("well")
@@ -236,6 +267,11 @@ func _do_retreat(delta: float) -> void:
 	var exit_pt := get_tree().get_first_node_in_group("enemy_spawn")
 	if exit_pt:
 		_move_toward((exit_pt as Node3D).global_position, delta, move_speed * 1.2)
+
+func _recon_pace() -> float:
+	if BattleState.recon_exposed and not BattleState.alarm_rung:
+		return move_speed * 1.75
+	return move_speed
 
 func _move_toward(pos: Vector3, _delta: float, spd: float = -1.0) -> void:
 	if spd < 0.0:
@@ -262,7 +298,8 @@ func _try_perceive(_delta: float) -> void:
 		known_player_pos = BattleState.player_position
 		has_player_contact = true
 		lose_sight_timer = 0.0
-		if state in [State.SEARCH, State.APPROACH, State.GUARD_HOLE]:
+		var hold_route := BattleState.recon_exposed and not BattleState.alarm_rung
+		if not hold_route and state in [State.SEARCH, State.APPROACH, State.GUARD_HOLE]:
 			state = State.COMBAT
 	# 枪孔暴露还击
 	if BattleState.player_at_firing_port and BattleState.firing_port_expose_time >= 8.0:
@@ -270,7 +307,7 @@ func _try_perceive(_delta: float) -> void:
 			state = State.COMBAT
 
 func _can_see_player() -> bool:
-	if BattleState.player_in_lookout and not BattleState.lookout_exposed:
+	if BattleState.player_in_lookout and not BattleState.lookout_exposed and not BattleState.recon_exposed:
 		return false
 	var to := BattleState.player_position - global_position
 	var dist := to.length()
@@ -298,11 +335,18 @@ func _can_see_player() -> bool:
 	return false
 
 func _shoot_player() -> void:
-	shoot_cooldown = 1.6
+	var on_surface := not BattleState.player_in_tunnel
+	var rushed := BattleState.recon_exposed and not BattleState.alarm_rung
+	if on_surface:
+		shoot_cooldown = 0.7 if rushed else 0.85
+	else:
+		shoot_cooldown = 1.7
 	var player := get_tree().get_first_node_in_group("player")
 	if player and player.has_method("take_damage"):
-		# 简化命中：看见且距离内约 55% 命中
-		if randf() < 0.55:
+		var chance := 0.45
+		if on_surface:
+			chance = 0.88 if rushed else 0.8
+		if randf() < chance:
 			player.take_damage(1, self)
 			EventBus.status_message.emit("你被击中！", 1.2)
 
@@ -324,11 +368,14 @@ func take_damage(amount: int = 1, _source: Node = null) -> void:
 	BattleState.log_event("敌军倒下：%s" % role)
 
 func _on_player_fired(origin: Vector3, _dir: Vector3) -> void:
-	if not alive:
+	if not alive or BattleState.exploring:
 		return
 	if global_position.distance_to(origin) <= hear_gunshot_range:
 		known_player_pos = origin
 		has_player_contact = true
+		if not BattleState.alarm_rung:
+			BattleState.recon_exposed = true
+			return
 		if state in [State.SEARCH, State.APPROACH, State.WAIT]:
 			state = State.COMBAT
 
@@ -351,12 +398,83 @@ func _on_retreat_signal() -> void:
 		state = State.RETREAT
 
 func _on_entrance_found(entrance_id: StringName, _by: StringName) -> void:
-	if role == &"rifleman" and state == State.SEARCH:
+	if role == &"rifleman" and state == State.SEARCH and not _tunnel_occupied():
 		for e in get_tree().get_nodes_in_group("entrances"):
 			if e.has_method("get_entrance_id") and e.get_entrance_id() == entrance_id:
 				target_entrance = e
 				state = State.PROBE
 				break
+
+func _tunnel_occupied() -> bool:
+	for n in get_tree().get_nodes_in_group("enemies"):
+		if n == self:
+			continue
+		if bool(n.get("_descended")) and n.has_method("is_alive") and n.is_alive():
+			return true
+	return false
+
+func _begin_probe() -> void:
+	for e in get_tree().get_nodes_in_group("entrances"):
+		if not bool(e.get("discovered")) or not bool(e.get("discoverable")):
+			continue
+		if not bool(e.get("enters_tunnel")):
+			continue
+		target_entrance = e
+		state = State.PROBE
+		return
+
+func _fit_tunnel_body(inside: bool) -> void:
+	var h := 1.15 if inside else 1.6
+	var col := get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if col and col.shape is CapsuleShape3D:
+		(col.shape as CapsuleShape3D).height = h
+		col.position.y = h * 0.5
+	if _mesh:
+		_mesh.scale.y = 0.62 if inside else 1.0
+		_mesh.position.y = 0.55 if inside else 0.9
+	if _head:
+		_head.position.y = 1.22 if inside else 1.85
+
+func _build_probe_path() -> void:
+	_probe_path.clear()
+	var y := global_position.y
+	var mouth := get_tree().get_first_node_in_group("combat_flip")
+	if mouth and mouth.has_method("is_dead_open") and mouth.is_dead_open():
+		_probe_path.append(Vector3(2.6, y, -3.2))
+	_probe_path.append(Vector3(7.2, y, 0.0))
+	_probe_path.append(Vector3(8.2, y, 0.0))
+	_probe_path.append(Vector3(2.6, y, 0.15))
+	_probe_path.append(Vector3(-6.2, y, 0.4))
+	_probe_path.append(Vector3(-6.2, y, 4.6))
+
+func _exit_probe() -> void:
+	if _return_pos != Vector3.ZERO:
+		global_position = _return_pos
+	_descended = false
+	has_long_gun = true
+	_fit_tunnel_body(false)
+	_probe_time = 0.0
+	_probe_i = 0
+	state = State.SEARCH
+
+func _check_tunnel_devices() -> void:
+	var trap := get_tree().get_first_node_in_group("flip_trap")
+	if trap and global_position.distance_to((trap as Node3D).global_position) < 1.2 and trap.has_method("try_trigger_from"):
+		trap.try_trigger_from(self)
+	var wire := get_tree().get_first_node_in_group("trip_wire")
+	if wire and global_position.distance_to((wire as Node3D).global_position) < 0.8 and wire.has_method("try_trigger_from"):
+		wire.try_trigger_from(self)
+
+func _combat_mouth_found() -> bool:
+	for e in get_tree().get_nodes_in_group("entrances"):
+		if not bool(e.get("discovered")) or not bool(e.get("discoverable")):
+			continue
+		if not bool(e.get("enters_tunnel")):
+			continue
+		var id: StringName = e.get_entrance_id() if e.has_method("get_entrance_id") else &""
+		if id == &"east_house" or id == &"well" or id == &"trough":
+			return true
+	return false
 
 func _pick_search_point() -> Node3D:
 	var points := get_tree().get_nodes_in_group("search_points")

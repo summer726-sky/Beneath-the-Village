@@ -24,7 +24,6 @@ func interact(_by: Node) -> void:
 	closed = true
 	BattleState.water_barrier_closed = true
 	EventBus.water_barrier_closed.emit()
-	EventBus.status_message.emit("挡水隔板已关闭！", 3.0)
 	BattleState.log_event("挡水隔板关闭")
 	var mesh := get_node_or_null("Visual") as MeshInstance3D
 	if mesh:

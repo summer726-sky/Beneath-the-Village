@@ -110,14 +110,18 @@ func _spawn_villagers() -> void:
 
 func _spawn_enemies() -> void:
 	var specs := [
-		{"role": &"commander", "pos": Vector3(28.0, 0.25, -1.0), "route": [Vector3(20, 0, -1), Vector3(13, 0, 3), Vector3(12, 0, 8), Vector3(2, 0, 8), Vector3(-6, 0, 3)]},
-		{"role": &"rifleman", "pos": Vector3(29.2, 0.25, 0.6), "route": [Vector3(20, 0, 1), Vector3(13, 0, -3), Vector3(12, 0, -8), Vector3(2, 0, -8), Vector3(-6, 0, -2)]},
-		{"role": &"rifleman", "pos": Vector3(27.4, 0.25, 1.8), "route": [Vector3(21, 0, 2), Vector3(13.5, 0, 4), Vector3(12, 0, 8), Vector3(0, 0, 7), Vector3(-5, 0, 1)]},
-		{"role": &"engineer", "pos": Vector3(30.0, 0.25, -0.2), "route": [Vector3(21, 0, 0), Vector3(13, 0, -2), Vector3(12, 0, -7), Vector3(1, 0, -6), Vector3(-8, 0, -3)]},
+		{"role": &"commander", "pos": Vector3(33.2, 0.25, -1.0), "route": [Vector3(20, 0, -1), Vector3(13, 0, 3), Vector3(12, 0, 8), Vector3(2, 0, 8), Vector3(-6, 0, 3)]},
+		{"role": &"rifleman", "pos": Vector3(33.0, 0.25, 0.8), "route": [Vector3(20, 0, 1), Vector3(13, 0, -3), Vector3(12, 0, -8), Vector3(2, 0, -8), Vector3(-6, 0, -2)]},
+		{"role": &"rifleman", "pos": Vector3(32.6, 0.25, 1.6), "route": [Vector3(21, 0, 2), Vector3(13.5, 0, 4), Vector3(12, 0, 8), Vector3(0, 0, 7), Vector3(-5, 0, 1)]},
+		{"role": &"engineer", "pos": Vector3(33.4, 0.25, -0.4), "route": [Vector3(21, 0, 0), Vector3(13, 0, -2), Vector3(12, 0, -7), Vector3(1, 0, -6), Vector3(-8, 0, -3)]},
+		{"role": &"rifleman", "pos": Vector3(32.8, 0.25, 7.2), "route": [Vector3(18, 0, 7.2), Vector3(12, 0, 8), Vector3(2, 0, 8), Vector3(-4, 0, 4)]},
+		{"role": &"rifleman", "pos": Vector3(33.0, 0.25, -6.5), "route": [Vector3(22, 0, -6.5), Vector3(13, 0, -8), Vector3(2, 0, -8), Vector3(-5, 0, -2)]},
 	]
-	for s in specs:
+	BattleState.enemies_alive = specs.size()
+	for i in specs.size():
+		var s: Dictionary = specs[i]
 		var e := CharacterBody3D.new()
-		e.name = "Enemy_%s" % s["role"]
+		e.name = "Enemy_%s_%d" % [s["role"], i]
 		e.collision_layer = 4
 		e.collision_mask = 1
 		e.position = s["pos"]

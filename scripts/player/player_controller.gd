@@ -30,6 +30,7 @@ func _ready() -> void:
 	add_to_group("player")
 	_capsule = collision.shape as CapsuleShape3D
 	_yaw = rotation.y
+	floor_max_angle = deg_to_rad(50.0)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	EventBus.player_revived.connect(_on_revived)
 
@@ -62,8 +63,15 @@ func _physics_process(delta: float) -> void:
 	if _revive_timer > 0.0:
 		_revive_timer -= delta
 		BattleState.player_can_control = false
-		velocity = Vector3.ZERO
+		if not is_on_floor():
+			velocity.y -= 20.0 * delta
+		else:
+			velocity.y = 0.0
+		velocity.x = 0.0
+		velocity.z = 0.0
 		move_and_slide()
+		if _revive_timer <= 0.0 and BattleState.player_alive and not BattleState.battle_over:
+			BattleState.player_can_control = true
 		return
 
 	if not BattleState.player_can_control or not BattleState.player_alive or BattleState.battle_over:
@@ -86,18 +94,15 @@ func _physics_process(delta: float) -> void:
 	velocity.x = direction.x * speed
 	velocity.z = direction.z * speed
 	move_and_slide()
-	if global_position.y < -5.3:
+	if global_position.y < -6.4:
 		global_position.y = -3.6
 		velocity = Vector3.ZERO
 
 	if interaction:
 		interaction.tick(delta)
 
-	# 枪孔暴露计时
-	if BattleState.player_at_firing_port:
-		BattleState.firing_port_expose_time += delta
-	else:
-		BattleState.firing_port_expose_time = 0.0
+	if BattleState.firing_port_expose_time > 0.0:
+		BattleState.firing_port_expose_time = maxf(0.0, BattleState.firing_port_expose_time - delta)
 
 func _update_crouch() -> void:
 	_crouching = Input.is_action_pressed("crouch") or BattleState.player_in_tunnel
@@ -113,6 +118,8 @@ func _set_height(h: float) -> void:
 func _try_fire() -> void:
 	if _fire_cooldown > 0.0:
 		return
+	if BattleState.exploring:
+		return
 	if BattleState.player_ammo <= 0:
 		EventBus.status_message.emit("身上弹药已空。沿地道前往弹药暗室，每次最多补充 4 发。", 3.2)
 		return
@@ -125,9 +132,11 @@ func _try_fire() -> void:
 		# 地道内允许近战距离射击，但精度低——仍允许射击
 		pass
 
-	if BattleState.player_in_lookout:
+	if BattleState.player_in_lookout or BattleState.phase == BattleState.Phase.OBSERVE:
 		BattleState.lookout_exposed = true
-		EventBus.status_message.emit("树洞暴露了。敌军会朝树洞还击。", 2.2)
+		BattleState.recon_exposed = true
+	if BattleState.player_at_firing_port:
+		BattleState.firing_port_expose_time = 6.0
 	BattleState.player_ammo -= 1
 	_fire_cooldown = fire_interval
 	var origin := camera.global_position
@@ -176,8 +185,11 @@ func _die() -> void:
 
 func _revive_at_command_room() -> void:
 	var spawn := get_tree().get_first_node_in_group("command_room_spawn")
+	_set_height(crouch_height)
+	set_in_tunnel(true)
 	if spawn:
 		global_position = spawn.global_position
+	velocity = Vector3.ZERO
 	BattleState.player_alive = true
 	BattleState.player_ammo = maxi(1, int(ceil(BattleState.player_ammo * 0.5)))
 	_revive_timer = revive_lock_seconds
@@ -205,14 +217,9 @@ func _shout_to_ally() -> void:
 				nearest = ally
 	if BattleState.player_in_lookout:
 		BattleState.lookout_exposed = true
-		EventBus.status_message.emit("树洞里喊话会暴露。", 2.0)
 	EventBus.shout_emitted.emit(global_position)
-	if nearest == null:
-		EventBus.status_message.emit("附近没有战友。喊声可能被敌军听见。", 2.4)
-		return
-	if nearest.has_method("receive_command_cycle"):
+	if nearest != null and nearest.has_method("receive_command_cycle"):
 		nearest.receive_command_cycle()
-	EventBus.status_message.emit("已喊话。距离近的敌军可能发现你。", 2.2)
 
 func _command_looked_ally() -> void:
 	interact_ray.force_raycast_update()
@@ -238,5 +245,3 @@ func set_at_firing_port(active: bool, port_id: StringName = &"", aim: Vector3 = 
 	BattleState.player_at_firing_port = active
 	BattleState.firing_port_id = port_id
 	_port_aim = aim
-	if not active:
-		BattleState.firing_port_expose_time = 0.0

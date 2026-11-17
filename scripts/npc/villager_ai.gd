@@ -69,9 +69,9 @@ func interact(_by: Node) -> void:
 	if not BattleState.exploring or state != State.IDLE:
 		return
 	var lines := [
-		"村里的地道藏在树洞、锅台、水井和东屋里，外面看不出洞口。",
-		"钟在院子的树下。拉响之后我们才往地道里躲。",
-		"水井下面有挡板。鬼子要是灌水，得有人去关上。"
+		"我们躲去北房夹壁下面的暗室。锅台不是入口，是朝院子开枪的地方。",
+		"钟在院子的树下。拉响之后我们才往北房地道里躲。",
+		"水井下面有两层。上层走人，下层排水。鬼子灌水时得有人去关隔板。"
 	]
 	EventBus.status_message.emit(lines[randi() % lines.size()], 3.4)
 

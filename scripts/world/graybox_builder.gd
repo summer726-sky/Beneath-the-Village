@@ -23,6 +23,7 @@ const NORTH_HOLE := Vector3(-6.2, 0, 7.2)
 
 func build() -> void:
 	_build_ground()
+	_build_plain_edge()
 	_build_houses()
 	_build_courtyard_props()
 	_build_outer_wall_and_lookout()
@@ -65,12 +66,40 @@ func _add_label(pos: Vector3, text: String, size: int = 40, color: Color = Color
 	add_child(label)
 
 func _build_ground() -> void:
-	# 地面铺满。地道口藏在树洞、锅台、水井和东屋里，不在地上开可以掉进去的洞。
-	for ix in range(-8, 17):
-		for iz in range(-6, 7):
+	# 地面铺满。地道口藏在树洞、水井、东屋、驴槽和北房。锅台是射击位，不在地上开可以掉进去的洞。
+	for ix in range(-12, 23):
+		for iz in range(-9, 10):
 			var cx := ix * 2.0 + 1.0
 			var cz := iz * 2.0
 			_add_box(Vector3(cx, -0.12, cz), Vector3(2.0, 0.24, 2.0), GROUND, "G_%d_%d" % [ix, iz])
+
+func _build_plain_edge() -> void:
+	# 冀中平原：麦田、田埂、道边杨树。树列挡住空边界，人从树缝里走出来。
+	var wheat := Color(0.73, 0.64, 0.32)
+	var earth := Color(0.5, 0.4, 0.26)
+	var trunk := Color(0.34, 0.28, 0.16)
+	var leaf := Color(0.33, 0.46, 0.22)
+	_add_box(Vector3(31.0, 0.03, 0.0), Vector3(18.0, 0.06, 30.0), wheat, "FieldEast")
+	_add_box(Vector3(-6.0, 0.03, 15.2), Vector3(28.0, 0.06, 6.0), wheat, "FieldNorth")
+	_add_box(Vector3(-6.0, 0.03, -15.2), Vector3(28.0, 0.06, 6.0), wheat, "FieldSouth")
+	_add_box(Vector3(-20.5, 0.03, 0.0), Vector3(6.0, 0.06, 26.0), wheat, "FieldWest")
+	_add_box(Vector3(40.2, 0.7, 0.0), Vector3(0.7, 1.4, 34.0), earth, "RidgeEast")
+	_add_box(Vector3(2.0, 0.55, 16.4), Vector3(44.0, 1.1, 0.7), earth, "RidgeNorth")
+	_add_box(Vector3(2.0, 0.55, -16.4), Vector3(44.0, 1.1, 0.7), earth, "RidgeSouth")
+	_add_box(Vector3(-21.6, 0.55, 0.0), Vector3(0.7, 1.1, 34.0), earth, "RidgeWest")
+	_add_box(Vector3(43.2, 3.2, 0.0), Vector3(0.4, 7.0, 42.0), Color(0.62, 0.6, 0.48), "HorizonEast")
+	_add_box(Vector3(0.0, 3.2, 19.2), Vector3(50.0, 7.0, 0.4), Color(0.62, 0.6, 0.48), "HorizonNorth")
+	_add_box(Vector3(0.0, 3.2, -19.2), Vector3(50.0, 7.0, 0.4), Color(0.62, 0.6, 0.48), "HorizonSouth")
+	_add_box(Vector3(-24.2, 3.2, 0.0), Vector3(0.4, 7.0, 42.0), Color(0.62, 0.6, 0.48), "HorizonWest")
+	var line_z := [-11.0, -9.0, -4.2, 3.4, 5.4, 9.6, 11.6]
+	for z in line_z:
+		_add_box(Vector3(30.0, 2.1, z), Vector3(0.38, 4.2, 0.38), trunk, "Poplar%d" % int(z * 10.0))
+		_add_box(Vector3(30.0, 4.3, z), Vector3(1.7, 1.5, 1.7), leaf, "PoplarTop%d" % int(z * 10.0))
+	for x in [-18.5, -16.2, -8.0, 4.0, 14.0]:
+		_add_box(Vector3(x, 1.6, 14.6), Vector3(0.32, 3.2, 0.32), trunk, "NorthTree%d" % int(x * 10.0))
+		_add_box(Vector3(x, 3.4, 14.6), Vector3(1.5, 1.2, 1.5), leaf, "NorthTop%d" % int(x * 10.0))
+		_add_box(Vector3(x, 1.6, -14.6), Vector3(0.32, 3.2, 0.32), trunk, "SouthTree%d" % int(x * 10.0))
+		_add_box(Vector3(x, 3.4, -14.6), Vector3(1.5, 1.2, 1.5), leaf, "SouthTop%d" % int(x * 10.0))
 
 func _house(pos: Vector3, size: Vector3, node_name: String) -> void:
 	_add_box(Vector3(pos.x, 1.35, pos.z), Vector3(size.x, 2.7, size.z), HOUSE, node_name)
@@ -138,7 +167,8 @@ func _build_courtyard_props() -> void:
 	add_child(bell)
 
 	_add_box(Vector3(STOVE.x, 0.45, STOVE.z), Vector3(1.3, 0.9, 0.8), Color(0.45, 0.38, 0.32), "Stove")
-	_add_label(STOVE + Vector3(0, 1.8, 0), "锅台", 40)
+	_add_label(STOVE + Vector3(0, 1.8, 0), "锅台 · 枪眼", 36)
+	_gun_port("StovePort", Vector3(-12.85, 1.15, 2.4), Vector3.RIGHT)
 
 	_add_box(Vector3(WELL.x, 0.35, WELL.z + 1.15), Vector3(1.6, 0.55, 0.4), WALLC, "WellRing")
 	_add_label(WELL + Vector3(0, 1.8, 0), "水井", 44)
@@ -250,11 +280,14 @@ func _build_tunnels() -> void:
 	_hub(Vector3(8.2, 0, -2.2), ["north"])
 	_hub(Vector3(2.6, 0, 0.15), ["west", "east", "south", "north"])
 	_hub(Vector3(-6.2, 0, 0), ["west", "east", "north"])
-	_hub(Vector3(-10.0, 0, 0), ["east", "south", "north"])
-	_hub(Vector3(-10.0, 0, 2.4), ["south", "west"])
+	_hub(Vector3(-10.0, 0, 0), ["east", "south"])
 	_corridor_x(-9.25, -6.4, 0.0)
-	_corridor_x(-5.4, 1.7, 0.15)
-	_corridor_x(3.5, 7.4, 0.0)
+	_corridor_x(-5.4, -4.7, 0.15)
+	_corridor_x(-3.3, 1.7, 0.15)
+	_spine_firing_room()
+	_corridor_x(3.5, 6.65, 0.0)
+	_corridor_x(7.75, 8.05, 0.0)
+	_hatch_gap()
 	_corridor_x(9.0, 16.6, 0.0)
 	_end_wall_x(16.55, 0.0)
 	_corridor_z(2.6, -4.3, -3.15)
@@ -273,17 +306,16 @@ func _build_tunnels() -> void:
 	_end_wall_x(-3.4, -4.2)
 	_corridor_z(-6.2, 0.9, 6.7)
 	_room(Vector3(-6.2, TUNNEL_FLOOR, 7.5), Vector3(2.6, TUNNEL_H, 2.2), "VillagerRoom", &"north")
-	_corridor_z(-10.0, 0.8, 1.6)
-	_corridor_x(-14.2, -10.8, 2.4)
-	_end_wall_x(-14.35, 2.4)
 	_pair(LOOKOUT, &"lookout", "树洞", Vector3.ZERO, false)
 	_pair(EXIT_HOLE, &"east_house", "东屋内", Vector3(0.35, 0, 0.35), false)
 	_pair(WELL, &"well", "水井", Vector3(1.2, 0, 0), false)
-	_pair(STOVE, &"stove", "锅台", Vector3(-0.55, 0, 0.2), true)
 	_pair(NORTH_HOLE, &"north_house", "北房夹壁", Vector3(0, 0, 0.55), true)
 	_pair(TROUGH, &"trough", "驴槽", Vector3(0, 0, 0.8), false)
 	_build_flip_mouth()
 	_build_seal_door()
+	_build_lower_drain()
+	_build_loft()
+	_build_trip_wire()
 
 	var barrier := StaticBody3D.new()
 	barrier.name = "WaterBarrier"
@@ -351,12 +383,16 @@ func _build_tunnels() -> void:
 	safe.add_to_group("villager_safe_zone")
 	add_child(safe)
 	_add_label(Vector3(10.5, TUNNEL_FLOOR + 1.35, 0), "向西 · 回东屋", 32, Color(1, 0.9, 0.6))
+	var stain := Node3D.new()
+	stain.name = "WaterStain"
+	stain.set_script(load("res://scripts/mechanics/water_stain.gd"))
+	add_child(stain)
 
 	var zone := Area3D.new()
-	zone.position = Vector3(2, TUNNEL_FLOOR + 0.9, 0)
+	zone.position = Vector3(2, -2.15, 0)
 	var zc := CollisionShape3D.new()
 	var zs := BoxShape3D.new()
-	zs.size = Vector3(30, 2.2, 14)
+	zs.size = Vector3(30, 4.1, 14)
 	zc.shape = zs
 	zone.add_child(zc)
 	zone.set_script(load("res://scripts/mechanics/zone_trigger.gd"))
@@ -384,6 +420,73 @@ func _mask_ramp() -> void:
 	add_child(ramp)
 	_add_label(Vector3(0.7, TUNNEL_FLOOR + 1.35, -2.4), "掩身洞", 24)
 
+func _hatch_gap() -> void:
+	var x := 7.2
+	var z := 0.0
+	var mid_y := TUNNEL_FLOOR + TUNNEL_H * 0.5
+	_add_box(Vector3(x, TUNNEL_FLOOR - 0.1, z), Vector3(1.05, 0.2, 1.65), TUNNEL, "HatchFloor")
+	_add_box(Vector3(x, mid_y, z - 0.66), Vector3(1.05, TUNNEL_H, 0.22), TUNNEL, "HatchWallS")
+	_add_box(Vector3(x, mid_y, z + 0.66), Vector3(1.05, TUNNEL_H, 0.22), TUNNEL, "HatchWallN")
+
+func _spine_firing_room() -> void:
+	_add_box(Vector3(-4.0, TUNNEL_FLOOR - 0.1, 0.15), Vector3(1.45, 0.2, 1.65), TUNNEL, "PortGapFloor")
+	_add_box(Vector3(-4.0, TUNNEL_FLOOR + TUNNEL_H + 0.1, 0.15), Vector3(1.45, 0.2, 1.65), Color(0.1, 0.07, 0.05), "PortGapCeil")
+	_add_box(Vector3(-4.0, TUNNEL_FLOOR + TUNNEL_H * 0.5, 0.15 + 0.66), Vector3(1.45, TUNNEL_H, 0.22), TUNNEL, "PortGapNorth")
+	_room(Vector3(-4.0, TUNNEL_FLOOR, -1.35), Vector3(1.6, TUNNEL_H, 1.45), "SpinePortRoom", &"south")
+	_gun_port("SpinePort", Vector3(-4.0, TUNNEL_FLOOR + 0.9, -0.85), Vector3(0, 0, 1))
+	_add_label(Vector3(-4.0, TUNNEL_FLOOR + 1.3, -1.35), "腰射暗室", 24)
+
+func _build_loft() -> void:
+	var floor_y := -1.78
+	var rise := floor_y - TUNNEL_FLOOR
+	var run := 4.8
+	var angle := rad_to_deg(atan(rise / run))
+	var ramp := StaticBody3D.new()
+	ramp.name = "LoftRamp"
+	ramp.position = Vector3(4.9, (TUNNEL_FLOOR + floor_y) * 0.5, 3.35)
+	ramp.rotation_degrees = Vector3(0, 0, angle)
+	var mesh := MeshInstance3D.new()
+	var box := BoxMesh.new()
+	box.size = Vector3(run + 0.25, 0.16, 0.9)
+	mesh.mesh = box
+	mesh.material_override = _mat(WOOD)
+	ramp.add_child(mesh)
+	var col := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = box.size
+	col.shape = shape
+	ramp.add_child(col)
+	add_child(ramp)
+	_add_box(Vector3(7.7, floor_y - 0.08, 3.15), Vector3(1.6, 0.16, 1.35), TUNNEL, "LoftFloor")
+	_add_box(Vector3(7.7, -0.42, 3.15), Vector3(1.8, 0.14, 1.55), Color(0.1, 0.07, 0.05), "LoftCeil")
+	_add_box(Vector3(8.45, -1.1, 3.15), Vector3(0.14, 1.3, 1.35), TUNNEL, "LoftWallE")
+	_add_box(Vector3(7.7, -1.1, 3.78), Vector3(1.6, 1.3, 0.12), TUNNEL, "LoftWallN")
+	_add_box(Vector3(7.2, floor_y - 0.08, 1.55), Vector3(0.85, 0.16, 2.5), TUNNEL, "LoftNeck")
+	_add_label(Vector3(7.7, floor_y + 0.75, 3.15), "上方暗室", 26)
+	_add_label(Vector3(7.2, floor_y + 0.5, 0.62), "跳口", 22)
+
+func _build_trip_wire() -> void:
+	var wire := Area3D.new()
+	wire.name = "TripWire"
+	wire.position = Vector3(-6.2, TUNNEL_FLOOR + 0.55, 3.4)
+	var wcol := CollisionShape3D.new()
+	var wshape := BoxShape3D.new()
+	wshape.size = Vector3(1.15, 1.1, 0.28)
+	wcol.shape = wshape
+	wire.add_child(wcol)
+	var vis := MeshInstance3D.new()
+	var line := BoxMesh.new()
+	line.size = Vector3(1.05, 0.03, 0.03)
+	vis.mesh = line
+	vis.position.y = 0.15
+	vis.material_override = _mat(Color(0.55, 0.5, 0.35))
+	wire.add_child(vis)
+	wire.set_script(load("res://scripts/mechanics/trip_wire.gd"))
+	wire.monitoring = true
+	wire.collision_mask = 2 | 4 | 8
+	add_child(wire)
+	_add_label(Vector3(-6.2, TUNNEL_FLOOR + 1.25, 3.4), "拉雷 · 先拉线", 24)
+
 func _gun_port(node_name: String, pos: Vector3, aim: Vector3) -> void:
 	var port := Area3D.new()
 	port.name = node_name
@@ -399,6 +502,24 @@ func _gun_port(node_name: String, pos: Vector3, aim: Vector3) -> void:
 	port.monitoring = true
 	port.collision_mask = 2
 	add_child(port)
+
+func _build_lower_drain() -> void:
+	# 井筒下层。上层地板保持封闭，人不会掉进排水层。
+	var floor_y := -5.5
+	var h := 1.05
+	var mid_y := floor_y + h * 0.5
+	var x := -10.0
+	var z0 := -4.55
+	var z1 := -1.75
+	var cz := (z0 + z1) * 0.5
+	var length := absf(z1 - z0)
+	_add_box(Vector3(x, floor_y - 0.1, cz), Vector3(1.7, 0.2, length), TUNNEL, "DrainFloor")
+	_add_box(Vector3(x, floor_y + h + 0.08, cz), Vector3(1.7, 0.16, length), Color(0.1, 0.07, 0.05), "DrainCeil")
+	_add_box(Vector3(x - 0.72, mid_y, cz), Vector3(0.18, h, length), TUNNEL, "DrainWallW")
+	_add_box(Vector3(x + 0.72, mid_y, cz), Vector3(0.18, h, length), TUNNEL, "DrainWallE")
+	_add_box(Vector3(x, mid_y, z0), Vector3(1.5, h, 0.18), TUNNEL, "DrainWallS")
+	_add_box(Vector3(x, mid_y, z1), Vector3(1.5, h, 0.18), TUNNEL, "DrainWallN")
+	_add_label(Vector3(x, floor_y + 0.7, -2.4), "下层排水", 22)
 
 func _board(board_name: String, pos: Vector3, size: Vector3) -> StaticBody3D:
 	var board := StaticBody3D.new()

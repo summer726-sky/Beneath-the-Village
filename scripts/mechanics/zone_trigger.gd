@@ -18,7 +18,6 @@ func _on_enter(body: Node) -> void:
 	if mark_observe:
 		if body.has_method("set_in_lookout"):
 			body.set_in_lookout(true)
-		EventBus.status_message.emit("树洞里：敌军看不见你。开枪或喊话就会暴露。", 3.2)
 
 func _on_exit(body: Node) -> void:
 	if not body.is_in_group("player"):
