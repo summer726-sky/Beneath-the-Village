@@ -34,12 +34,13 @@ func is_passable() -> bool:
 func get_interact_hint() -> String:
 	if supports_vertical:
 		return "E 沿绳索进入地道"
-	return "E 进入：%s" % hint_text
+	return hint_text
 
 func interact(by: Node) -> void:
 	if not passable:
 		EventBus.status_message.emit("此入口暂时无法通行", 2.0)
 		return
+	_open_lid()
 	var dest := _resolve_link()
 	if by is CharacterBody3D and dest:
 		(by as CharacterBody3D).global_position = dest.global_position + Vector3(0, 0.15, 0)
@@ -51,6 +52,19 @@ func interact(by: Node) -> void:
 		(by as CharacterBody3D).global_position += Vector3(0, -5.0 if enters_tunnel else 5.0, 0)
 		if by.has_method("set_in_tunnel"):
 			by.set_in_tunnel(enters_tunnel)
+
+var _lid_open: bool = false
+
+func _open_lid() -> void:
+	var lid := get_node_or_null("Lid") as Node3D
+	if lid == null or _lid_open:
+		return
+	_lid_open = true
+	var tw := create_tween()
+	if lid.has_meta("slide"):
+		tw.tween_property(lid, "position", lid.position + (lid.get_meta("slide") as Vector3), 0.32)
+	elif lid.has_meta("hinge"):
+		tw.tween_property(lid, "rotation_degrees", lid.get_meta("hinge"), 0.32)
 
 func _on_body_entered(body: Node) -> void:
 	if not discoverable or discovered:

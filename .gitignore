@@ -25,6 +25,7 @@ Thumbs.db
 
 # Local tool paths
 docs/godot_path.txt
+tools/_cache/
 
 # Secrets and machine-local env
 .env

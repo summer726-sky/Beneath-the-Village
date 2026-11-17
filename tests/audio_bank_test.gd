@@ -38,6 +38,27 @@ func _run() -> void:
 		var text := String(row).split("|")[1]
 		if text.contains("Reload") or text.contains("Enemy"):
 			errors.append("口语里混进了英文：%s" % text)
+	var voices: PackedStringArray = [
+		"player_explore", "player_warn", "player_hide", "player_quiet",
+		"villager_1_alarm", "villager_1_water",
+		"villager_2_alarm", "villager_2_water",
+		"villager_3_alarm", "villager_3_water",
+		"ally_jia_port", "ally_jia_barrier", "ally_jia_standby",
+		"ally_yi_port", "ally_yi_barrier", "ally_yi_standby",
+		"enemy_0_advance", "enemy_0_fire", "enemy_3_pour", "enemy_5_hole",
+	]
+	for id in voices:
+		var path := "res://audio/voice/%s.wav" % id
+		if not FileAccess.file_exists(path) or FileAccess.get_file_as_bytes(path).size() < 8000:
+			errors.append("缺少配音：%s" % id)
+	if Lines.ally_voice_id("甲", "守这个孔") != "ally_jia_port":
+		errors.append("战友甲的配音编号不对")
+	if Lines.ally_voice_id("乙", "去关隔板") != "ally_yi_barrier":
+		errors.append("战友乙的配音编号不对")
+	if Lines.villager_voice_id(1, false) != "villager_1_alarm" or Lines.villager_voice_id(2, true) != "villager_2_water":
+		errors.append("村民配音编号不对")
+	if Lines.enemy_voice_id(3, "pour") != "enemy_3_pour":
+		errors.append("日军配音编号不对")
 	if errors.is_empty():
 		print("=== AUDIO BANK PASSED ===")
 		quit(0)

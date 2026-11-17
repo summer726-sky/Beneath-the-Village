@@ -1,0 +1,26 @@
+本目录是已经合成好的短句，游戏只播放这些文件。合成用的模型、词典和程序不放进仓库。
+
+这些声音按角色分开音高、语速和明暗。中文是普通话，日语是标准语。它们不是冀中方言，也不是史料原声。
+
+中文男声
+玩家、战友甲、战友乙。使用 Piper 音色 zh_CN-chaowen-medium（超文）。
+玩家保持原来的音高。战友甲降低约四个半音，并压暗，听起来更沉。
+战友乙升高约三个半音，语速更快、声音更亮，是年轻男声。
+该音色收录于 OHF-Voice 的 voice-datasets，其商用清单将它标为 CC0：
+https://github.com/OHF-Voice/voice-datasets
+
+中文女声
+三名村民。用本机 Windows 语音 Microsoft Huihui Desktop（zh-CN）合成后再分开：
+村民1更低、更慢，是年纪较大的女声。
+村民2更高、更亮、更快，是年轻女声。
+村民3偏低但语速正常，是另一个年轻女声。
+这里只有合成出来的句子，不包含语音字体本身。
+
+日军口令
+六名士兵各用一套音高和语速。用 Open JTalk 和 HTS 成年男声 NIT ATR503 M001 合成。
+说的是日语口令（前へ、撃て、穴を探せ、井戸に水を入れろ）。画面上仍是中文译文。
+该声库版权归名古屋工业大学（Nagoya Institute of Technology）与 HTS Working Group，
+东京工业大学参与了声库工作。许可为 Creative Commons Attribution 3.0：
+http://creativecommons.org/licenses/by/3.0/
+说明页：http://open-jtalk.sourceforge.net/
+http://hts.sp.nitech.ac.jp/

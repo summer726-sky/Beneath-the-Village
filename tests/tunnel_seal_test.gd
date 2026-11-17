@@ -28,6 +28,17 @@ func _run() -> void:
 	root.add_child(scene)
 	for _i in 8:
 		await physics_frame
+	_check_opening(scene, errors, Vector3(15.2, 1.41, 0.0), Vector3(4, 0, 0), 1.2, true, "树缝")
+	_check_opening(scene, errors, Vector3(15.2, 1.41, 0.3), Vector3(2, 0, 0), 0.85, false, "树缝旁边")
+	_check_opening(scene, errors, Vector3(15.2, 0.5, 0.0), Vector3(2, 0, 0), 0.85, false, "树身下部")
+	_check_opening(scene, errors, Vector3(14.3, 1.0, 0.0), Vector3(1.2, 0, 0), 0.7, false, "树的西侧")
+	_check_opening(scene, errors, Vector3(9.35, 1.41, 1.65), Vector3(3, 0, 0), 1.6, true, "墙缝")
+	_check_opening(scene, errors, Vector3(-13.25, 1.41, 3.85), Vector3(2.5, 0, 0), 1.2, true, "锅台枪眼")
+	_check_opening(scene, errors, Vector3(1.25, 1.41, 1.2), Vector3(-2.2, 0, 0), 1.1, true, "门槛枪眼")
+	_check_opening(scene, errors, Vector3(-3.55, -2.87, -1.15), Vector3(0, 0, 2.2), 0.9, true, "直道枪眼")
+	_check_opening(scene, errors, Vector3(7.2, -1.55, 0.2), Vector3(0, 1.3, 0), 0.9, true, "跳口")
+	_check_opening(scene, errors, Vector3(7.2, -1.55, 0.2), Vector3(0.42, 0, 0), 0.35, true, "跳口宽度")
+	_check_opening(scene, errors, Vector3(4.25, -2.9, 1.15), Vector3(0.55, 0, 0), 0.45, true, "侧洞宽度")
 
 	var probe := Probe.new()
 	var col := CollisionShape3D.new()
@@ -114,6 +125,18 @@ func _run() -> void:
 
 	probe.queue_free()
 	_finish(errors)
+
+func _check_opening(scene: Node, errors: Array[String], origin: Vector3, travel: Vector3, limit: float, should_pass: bool, label: String) -> void:
+	var space: PhysicsDirectSpaceState3D = scene.get_world_3d().direct_space_state
+	var query := PhysicsRayQueryParameters3D.create(origin, origin + travel)
+	var hit: Dictionary = space.intersect_ray(query)
+	var dist := travel.length()
+	if not hit.is_empty():
+		dist = origin.distance_to(hit.position)
+	if should_pass and dist < limit:
+		errors.append("%s被挡住，射线 %.2f 米" % [label, dist])
+	elif not should_pass and dist > limit:
+		errors.append("%s是敞口，射线 %.2f 米" % [label, dist])
 
 func _settle(probe: Probe, pos: Vector3, push: Vector3, frames: int) -> float:
 	probe.global_position = pos

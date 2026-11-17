@@ -1,6 +1,9 @@
 extends CanvasLayer
 class_name GameHUD
 
+const FrameScript = preload("res://scripts/ui/narrative_frame.gd")
+const BedScript = preload("res://scripts/ui/narrative_bed.gd")
+
 @onready var ammo_label: Label = $Root/TopLeft/Ammo
 @onready var lives_label: Label = $Root/TopLeft/Lives
 @onready var morale_label: Label = $Root/TopLeft/Morale
@@ -23,6 +26,8 @@ class_name GameHUD
 
 var _msg_timer: float = 0.0
 var _f12_latched: bool = false
+var _frame
+var _bed
 
 func _ready() -> void:
 	EventBus.interactable_hint.connect(_on_hint)
@@ -33,11 +38,15 @@ func _ready() -> void:
 	explore_btn.pressed.connect(_on_explore)
 	overview_panel.visible = false
 	result_panel.visible = false
-	intro_panel.visible = true
+	intro_panel.visible = false
+	intro_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	start_btn.focus_mode = Control.FOCUS_NONE
+	explore_btn.focus_mode = Control.FOCUS_NONE
+	restart_btn.focus_mode = Control.FOCUS_NONE
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	objective_label.text = "目标：保护村民 · 阻止灌水 · 击退敌军"
+	objective_label.text = "钟还没响。人还在院子里。"
 	_ensure_crosshair()
-	_update_static_intro()
+	_mount_narrative()
 
 func _ensure_crosshair() -> void:
 	if $Root.get_node_or_null("Crosshair"):
@@ -56,11 +65,16 @@ func _process(delta: float) -> void:
 		_msg_timer -= delta
 		if _msg_timer <= 0.0:
 			message_label.text = ""
-	if Input.is_action_just_pressed("toggle_overview") and not result_panel.visible and not intro_panel.visible:
+	var covering := false
+	if _frame != null and _frame.has_method("is_covering"):
+		covering = _frame.is_covering()
+	if _crosshair():
+		_crosshair().visible = not covering
+	if Input.is_action_just_pressed("toggle_overview") and not covering:
 		overview_panel.visible = not overview_panel.visible
 		if overview_panel.visible:
 			_fill_overview()
-	if intro_panel.visible and Input.is_action_just_pressed("skip_intro"):
+	if _frame and _frame.is_intro() and Input.is_action_just_pressed("skip_intro"):
 		_on_start()
 	if Input.is_physical_key_pressed(KEY_F12) and not _f12_latched:
 		_f12_latched = true
@@ -68,8 +82,18 @@ func _process(delta: float) -> void:
 	elif not Input.is_physical_key_pressed(KEY_F12):
 		_f12_latched = false
 
-func _update_static_intro() -> void:
-	intro_text.text = "冀中平原·冉庄\n\n两个入口并列。探索：熟悉封闭地道，E 与村民、战友交谈。\n警戒：人在树洞里，朝东的缝看敌军。开枪会暴露，敌军会压制并加速进村。\n地道口在树洞、东屋、水井、驴槽和北房。锅台是射击位，不是入口。村民躲进北房暗室。\n探索时按 B，会钻进树洞并开始警戒。空格直接开始警戒。\n\nWASD · 鼠标 · E 交互 · G 喊话 · Q 战况"
+func _mount_narrative() -> void:
+	_bed = BedScript.new()
+	add_child(_bed)
+	_frame = FrameScript.new()
+	_frame.history_hush.connect(_bed.hush)
+	_frame.entered_lookout.connect(_on_start)
+	_frame.entered_yard.connect(_on_explore)
+	_frame.restart_requested.connect(_on_restart)
+	$Root.add_child(_frame)
+
+func _crosshair() -> CanvasItem:
+	return $Root.get_node_or_null("Crosshair") as CanvasItem
 
 func _update_hud() -> void:
 	ammo_label.text = "弹药 %d/%d  暗室 %d" % [BattleState.player_ammo, BattleState.player_max_ammo, BattleState.ammo_cache_stock]
@@ -110,31 +134,34 @@ func _fill_overview() -> void:
 	])
 
 func _on_battle_ended(result: StringName, reason: StringName) -> void:
-	result_panel.visible = true
+	result_panel.visible = false
 	overview_panel.visible = false
 	intro_panel.visible = false
-	if result == &"VICTORY":
-		result_title.text = "胜利"
-		result_title.modulate = Color(0.85, 0.9, 0.55)
-	else:
-		result_title.text = "失败"
-		result_title.modulate = Color(0.9, 0.45, 0.35)
-	result_reason.text = str(reason)
-	result_log.text = "本局记录：\n" + "\n".join(BattleState.battle_log)
+	if _bed:
+		_bed.fade_out()
+	if _frame:
+		_frame.show_result(result, str(reason))
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _on_restart() -> void:
 	GameManager.restart()
 
 func _on_start() -> void:
-	intro_panel.visible = false
+	_leave_narrative()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	GameManager.begin_play()
 
 func _on_explore() -> void:
-	intro_panel.visible = false
+	_leave_narrative()
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	GameManager.begin_explore()
+
+func _leave_narrative() -> void:
+	intro_panel.visible = false
+	if _frame:
+		_frame.close()
+	if _bed:
+		_bed.fade_out()
 
 func _capture_screenshot() -> void:
 	await get_tree().process_frame

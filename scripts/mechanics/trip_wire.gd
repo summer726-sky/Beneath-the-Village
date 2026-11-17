@@ -7,14 +7,18 @@ var sprung: bool = false
 func _ready() -> void:
 	add_to_group("trip_wire")
 	add_to_group("interactable")
-	body_entered.connect(_on_body_entered)
+	var blast := get_node_or_null("Blast") as Area3D
+	if blast:
+		blast.body_entered.connect(_on_body_entered)
+	else:
+		body_entered.connect(_on_body_entered)
 
 func get_interact_hint() -> String:
 	if sprung:
 		return "拉雷已触发"
 	if not armed:
-		return "E 拉线。之后只有敌军绊上会响"
-	return "线已拉开。从旁边过去"
+		return "E 在这个枪眼里拉线。线通向通道上的雷"
+	return "线已拉开。人留在墙后"
 
 func interact(_by: Node) -> void:
 	if sprung or armed:

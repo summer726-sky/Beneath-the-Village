@@ -71,6 +71,7 @@ func _ready() -> void:
 	EventBus.shout_emitted.connect(_on_shout)
 	EventBus.battle_ended.connect(_on_battle_ended)
 	EventBus.ally_died.connect(_on_ally_died)
+	EventBus.ally_commanded.connect(_on_ally_commanded)
 	_boot_voice()
 	_show_hint("音量  −  /  =", 6.0)
 
@@ -141,7 +142,9 @@ func _on_trap(_trap_id: StringName, _victim_id: StringName) -> void:
 	_play(_sfx["wood"], _node_pos("flip_trap"), _bus_at(_node_pos("flip_trap")), -2.0, 1.0, 24.0)
 
 func _on_water() -> void:
-	_say_enemy_if_near(Lines.ENEMY_POUR, _role_pos("engineer"))
+	var engineer := _living_enemy("engineer")
+	var pour_id := Lines.enemy_voice_id(_enemy_index(engineer), "pour") if engineer else Lines.ENEMY_POUR_ID
+	_say_enemy_if_near(Lines.ENEMY_POUR, engineer.global_position if engineer else Vector3.ZERO, pour_id)
 	_villager_in = 1.3
 
 func _on_barrier() -> void:
@@ -166,6 +169,12 @@ func _on_player_died(_lives: int) -> void:
 		return
 	_hit_lock = 0.45
 	_play(_sfx["fall"], _ear(), "Sfx", -3.0, 0.85, 8.0)
+
+func _on_ally_commanded(ally_id: StringName, command: StringName) -> void:
+	var vid := Lines.ally_voice_id(String(ally_id), String(command))
+	if vid == "":
+		return
+	_voice_at(vid, _ally_pos(ally_id), false)
 
 func _on_shout(origin: Vector3) -> void:
 	if BattleState.exploring or not BattleState.alarm_rung:
@@ -207,13 +216,15 @@ func _tick_scheduled(delta: float) -> void:
 	if _advance_in >= 0.0:
 		_advance_in -= delta
 		if _advance_in < 0.0:
-			_say_enemy_if_near(Lines.ENEMY_ADVANCE, _commander_pos())
+			var commander := _living_enemy("commander")
+			var advance_id := Lines.enemy_voice_id(_enemy_index(commander), "advance") if commander else Lines.ENEMY_ADVANCE_ID
+			_say_enemy_if_near(Lines.ENEMY_ADVANCE, commander.global_position if commander else Vector3.ZERO, advance_id)
 
 func _villager_shout() -> void:
 	var water := BattleState.water_started and not BattleState.water_barrier_closed
 	var text := Lines.VILLAGER_WATER if water else Lines.VILLAGER_ALARM
-	var vid := Lines.VILLAGER_WATER_ID if water else Lines.VILLAGER_ALARM_ID
 	var body := _surface_villager()
+	var vid := Lines.villager_voice_id(_villager_slot(body), water)
 	var pos := body.global_position if body else _node_pos("villager_safe_zone")
 	var underground := body == null
 	var prefix := "地道里有人喊：" if underground else "村民："
@@ -304,13 +315,17 @@ func _tick_enemies(_delta: float) -> void:
 		if _enemy_line_cd > 0.0 or _ear().distance_to(body.global_position) > SPEECH_RANGE:
 			continue
 		var line := ""
+		var voice_id := ""
 		if st == int(EnemyAI.State.COMBAT):
 			line = Lines.ENEMY_FIRE
+			voice_id = Lines.enemy_voice_id(_enemy_index(body), "fire")
 		elif st == int(EnemyAI.State.PROBE) or st == int(EnemyAI.State.GUARD_HOLE):
 			line = Lines.ENEMY_HOLE
+			voice_id = Lines.enemy_voice_id(_enemy_index(body), "hole")
 		if line != "":
 			EventBus.status_message.emit(line, 2.2)
 			_enemy_line_cd = 3.4
+			_voice_at(voice_id, body.global_position, body.global_position.y < -1.0 or BattleState.player_in_tunnel)
 
 func _tick_mechanisms() -> void:
 	for node in get_tree().get_nodes_in_group("flip_mouth"):
@@ -354,13 +369,14 @@ func _tick_tunnel_edge() -> void:
 		_was_tunnel = now
 		_play(_sfx["pack"], _ear(), "Muffle" if now else "Sfx", -10.0, 0.8 if now else 1.0, 6.0)
 
-func _say_enemy_if_near(line: String, pos: Vector3) -> void:
+func _say_enemy_if_near(line: String, pos: Vector3, voice_id: String) -> void:
 	if _enemy_line_cd > 0.0:
 		return
 	if pos == Vector3.ZERO or _ear().distance_to(pos) > SPEECH_RANGE + 6.0:
 		return
 	EventBus.status_message.emit(line, 2.4)
 	_enemy_line_cd = 3.4
+	_voice_at(voice_id, pos, pos.y < -1.0 or BattleState.player_in_tunnel)
 
 func _play_rifle(pos: Vector3) -> void:
 	_play(_sfx["rifle"], pos, _bus_at(pos), -2.0, randf_range(0.97, 1.03), 46.0)
@@ -409,9 +425,12 @@ func _voice_at(id: String, pos: Vector3, muffled: bool) -> void:
 	_play(stream, pos, bus, -8.0 if muffled else -3.0, 1.0, 32.0)
 
 func _voice_stream(id: String) -> AudioStream:
-	var ogg := "res://audio/voice/%s.ogg" % id
-	if ResourceLoader.exists(ogg):
-		return load(ogg)
+	for ext in ["ogg", "wav"]:
+		var path := "res://audio/voice/%s.%s" % [id, ext]
+		if ResourceLoader.exists(path) or FileAccess.file_exists(path):
+			var res = load(path)
+			if res is AudioStream:
+				return res
 	return _voices.get(id, null)
 
 func _tick_voice() -> void:
@@ -428,8 +447,16 @@ func _tick_voice() -> void:
 		_queued_id = ""
 		_voice_at(id, _queued_pos, _queued_muffle)
 
+func _bundled_voice(id: String) -> bool:
+	return FileAccess.file_exists("res://audio/voice/%s.wav" % id) or FileAccess.file_exists("res://audio/voice/%s.ogg" % id)
+
 func _boot_voice() -> void:
-	if _headless() or OS.get_name() != "Windows":
+	var bundled := true
+	for row in Lines.spoken_rows():
+		if not _bundled_voice(String(row).split("|")[0]):
+			bundled = false
+			break
+	if bundled or _headless() or OS.get_name() != "Windows":
 		_voice_done = true
 		return
 	var err := VOICE_DIR + "/error.txt"
@@ -659,14 +686,29 @@ func _ally_pos(ally_id: StringName) -> Vector3:
 			return (n as Node3D).global_position
 	return _ear()
 
-func _commander_pos() -> Vector3:
-	return _role_pos("commander")
+func _villager_slot(body: Node) -> int:
+	if body == null:
+		return 1
+	var tail := String(body.name)
+	if tail.ends_with("2"):
+		return 2
+	if tail.ends_with("3"):
+		return 3
+	return 1
 
-func _role_pos(role: String) -> Vector3:
+func _enemy_index(body: Node) -> int:
+	if body == null:
+		return 0
+	var parts := String(body.name).split("_")
+	if parts.size() > 1 and parts[parts.size() - 1].is_valid_int():
+		return int(parts[parts.size() - 1])
+	return 0
+
+func _living_enemy(role: String) -> Node3D:
 	for n in get_tree().get_nodes_in_group("enemies"):
 		if String(n.get("role")) == role and n is Node3D and bool(n.get("alive")):
-			return (n as Node3D).global_position
-	return Vector3.ZERO
+			return n as Node3D
+	return null
 
 func _surface_villager() -> Node3D:
 	for n in get_tree().get_nodes_in_group("villagers"):

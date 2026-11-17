@@ -12,7 +12,7 @@ func _ready() -> void:
 	body_exited.connect(_on_exit)
 
 func get_interact_hint() -> String:
-	return "射击孔：对准外侧开火。开一枪就会暴露这个枪眼"
+	return "人在墙后。从窄缝看出去再开枪，开一枪就会暴露"
 
 func interact(_by: Node) -> void:
 	pass

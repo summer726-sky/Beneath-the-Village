@@ -321,11 +321,13 @@ func _can_see_player() -> bool:
 		return false
 	# 射线遮挡
 	var space := get_world_3d().direct_space_state
+	var eye_h := 1.42 if BattleState.player_in_lookout else (0.95 if BattleState.player_in_tunnel else 1.2)
 	var query := PhysicsRayQueryParameters3D.create(
 		global_position + Vector3.UP * 1.4,
-		BattleState.player_position + Vector3.UP * 1.2
+		BattleState.player_position + Vector3.UP * eye_h
 	)
 	query.exclude = [get_rid()]
+	query.collision_mask = 1
 	var hit := space.intersect_ray(query)
 	if hit.is_empty():
 		return true
@@ -440,6 +442,7 @@ func _build_probe_path() -> void:
 	var y := global_position.y
 	var mouth := get_tree().get_first_node_in_group("combat_flip")
 	if mouth and mouth.has_method("is_dead_open") and mouth.is_dead_open():
+		_probe_path.append(Vector3(2.6, y, -6.4))
 		_probe_path.append(Vector3(2.6, y, -3.2))
 	_probe_path.append(Vector3(7.2, y, 0.0))
 	_probe_path.append(Vector3(8.2, y, 0.0))
