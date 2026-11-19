@@ -26,4 +26,3 @@ func interact(_by: Node) -> void:
 	rung = true
 	EventBus.alarm_triggered.emit(true)
 	BattleState.log_event("警报钟敲响")
-	EventBus.status_message.emit("警报响起！村民开始躲藏，敌军加快接近。", 4.0)

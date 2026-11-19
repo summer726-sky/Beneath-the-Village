@@ -29,14 +29,14 @@ func _run() -> void:
 		errors.append("初始生命应为 3，实际 %s" % str(bs.get("player_lives")))
 	if int(bs.get("enemy_morale")) != 4:
 		errors.append("初始士气应为 4")
-	if int(bs.get("enemies_alive")) != 6:
-		errors.append("敌军数量应为 6")
+	if int(bs.get("enemies_alive")) != 12:
+		errors.append("敌军数量应为 12")
 
 	if scene.get_node_or_null("Player") == null:
 		errors.append("缺少 Player")
 
 	var enemies := get_nodes_in_group("enemies")
-	if enemies.size() != 6:
+	if enemies.size() != 12:
 		errors.append("敌军 group 数量=%d" % enemies.size())
 	if get_nodes_in_group("villagers").size() != 3:
 		errors.append("村民数量异常")

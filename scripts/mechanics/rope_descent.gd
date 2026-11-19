@@ -29,6 +29,8 @@ func get_interact_hint() -> String:
 func interact(by: Node) -> void:
 	if by is CharacterBody3D and _resolve_drop():
 		# 中成本简化：短暂停顿后传送到落点（预留动画挂点）
+		if by.has_method("dip_for"):
+			by.dip_for(0.14)
 		EventBus.status_message.emit("沿绳垂降…", 1.2)
 		await get_tree().create_timer(0.6).timeout
 		if is_instance_valid(by):

@@ -17,7 +17,7 @@ func get_interact_hint() -> String:
 	if sprung:
 		return "拉雷已触发"
 	if not armed:
-		return "E 在这个枪眼里拉线。线通向通道上的雷"
+		return "E 拉线"
 	return "线已拉开。人留在墙后"
 
 func interact(_by: Node) -> void:
@@ -41,6 +41,7 @@ func _attempt(body: Node3D) -> bool:
 	if not body.is_in_group("enemies"):
 		return false
 	sprung = true
+	EventBus.muzzle_flash.emit(global_position, global_position + Vector3(0, 0.6, 0), false)
 	if body.has_method("take_damage"):
 		body.take_damage(1, self)
 	BattleState.log_event("拉雷触发")

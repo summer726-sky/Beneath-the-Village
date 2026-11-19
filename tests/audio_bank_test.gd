@@ -32,8 +32,11 @@ func _run() -> void:
 		errors.append("口令误用了电影台词")
 	if not str(Lines.VILLAGER_ALARM).contains("北房"):
 		errors.append("村民口令没有对上北房藏身点")
-	if not str(Lines.ENEMY_FIRE).begins_with("敌军（日语口令）"):
-		errors.append("敌军字幕没有标明日语口令")
+	if str(Lines.ENEMY_ADVANCE) != "前へ！" or str(Lines.ENEMY_FIRE) != "撃て！" or str(Lines.ENEMY_HOLE) != "穴を探せ！" or str(Lines.ENEMY_POUR) != "井戸に水を入れろ！":
+		errors.append("敌军口令应只写日语")
+	for line in [Lines.ENEMY_ADVANCE, Lines.ENEMY_FIRE, Lines.ENEMY_HOLE, Lines.ENEMY_POUR]:
+		if "敌军" in str(line) or "射击" in str(line) or "向前" in str(line) or "搜洞" in str(line) or "灌水" in str(line):
+			errors.append("敌军口令附了中文译文")
 	for row in Lines.spoken_rows():
 		var text := String(row).split("|")[1]
 		if text.contains("Reload") or text.contains("Enemy"):

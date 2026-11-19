@@ -54,6 +54,19 @@ static func wood_slide() -> AudioStreamWAV:
 static func body_fall() -> AudioStreamWAV:
 	return _thud(194213, 0.28, 0.1, 55.0, 0.75)
 
+static func hit_grunt() -> AudioStreamWAV:
+	var n := int(RATE * 0.32)
+	var rng := _rng(194250)
+	var s := PackedFloat32Array()
+	s.resize(n)
+	for i in n:
+		var t := float(i) / float(RATE)
+		var breath := sin(TAU * 92.0 * t) * exp(-t * 7.0) * 0.55
+		var rasp := sin(TAU * 210.0 * t) * exp(-t * 11.0) * 0.35
+		var noise := rng.randf_range(-0.2, 0.2) * exp(-t * 14.0)
+		s[i] = breath + rasp + noise
+	return _pcm(_peak(s, 0.72))
+
 static func cloth() -> AudioStreamWAV:
 	return _thud(194214, 0.18, 0.2, 70.0, 0.4)
 

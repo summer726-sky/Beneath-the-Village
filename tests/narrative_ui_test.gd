@@ -47,8 +47,15 @@ func _check_copy(errors: Array[String]) -> void:
 		errors.append("全村长度没有和这一局分开")
 	if Copy.is_silent(0) == false or Copy.is_silent(1):
 		errors.append("留白没有落在扫荡那一句")
+	# 开场规则说明：成功/失败/操作/界面（与史实旁白分开）
+	if not Copy.RULES.contains("成功") or not Copy.RULES.contains("失败"):
+		errors.append("规则没有写明成功和失败")
+	if not Copy.RULES.contains("WASD") or not Copy.RULES.contains("右上角"):
+		errors.append("规则没有写明操作或地图界面")
+	if not Copy.RULES.contains("瞭望树") or not Copy.RULES.contains("杀害"):
+		errors.append("规则没有写明人质失败条件")
 	var win := Copy.outcome_title(&"VICTORY", "敌军全部消灭")
-	var lost := Copy.outcome_title(&"DEFEAT", "两名村民被捕")
+	var lost := Copy.outcome_title(&"DEFEAT", "两名村民被押到瞭望树")
 	if win.contains("胜利") or lost.contains("失败") or win == lost:
 		errors.append("结算仍是游戏胜负标题")
 	if Copy.outcome_mark(&"VICTORY") == Copy.outcome_mark(&"DEFEAT"):

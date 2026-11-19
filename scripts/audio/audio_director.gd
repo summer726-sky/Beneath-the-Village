@@ -61,6 +61,8 @@ func _ready() -> void:
 	_start_beds()
 	EventBus.alarm_triggered.connect(_on_alarm)
 	EventBus.player_fired.connect(_on_player_fired)
+	EventBus.gunshot.connect(_on_gunshot)
+	EventBus.dry_fired.connect(_on_dry)
 	EventBus.trap_triggered.connect(_on_trap)
 	EventBus.water_started.connect(_on_water)
 	EventBus.water_barrier_closed.connect(_on_barrier)
@@ -72,6 +74,7 @@ func _ready() -> void:
 	EventBus.battle_ended.connect(_on_battle_ended)
 	EventBus.ally_died.connect(_on_ally_died)
 	EventBus.ally_commanded.connect(_on_ally_commanded)
+	EventBus.actor_hit.connect(_on_actor_hit)
 	_boot_voice()
 	_show_hint("音量  −  /  =", 6.0)
 
@@ -91,10 +94,6 @@ func set_ambience(linear: float) -> void:
 	_save_settings()
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("fire") and _dry_fire_now():
-		_play_flat(_sfx["bolt"], -6.0)
-	elif event.is_action_pressed("reload"):
-		_play_flat(_sfx["bolt"], -6.0)
 	if not (event is InputEventKey) or not event.pressed or event.echo:
 		return
 	var key_event := event as InputEventKey
@@ -138,6 +137,12 @@ func _on_alarm(_by_player: bool) -> void:
 func _on_player_fired(origin: Vector3, _dir: Vector3) -> void:
 	_play_rifle(origin)
 
+func _on_gunshot(origin: Vector3) -> void:
+	_play_rifle(origin)
+
+func _on_dry() -> void:
+	_play_flat(_sfx["bolt"], -6.0)
+
 func _on_trap(_trap_id: StringName, _victim_id: StringName) -> void:
 	_play(_sfx["wood"], _node_pos("flip_trap"), _bus_at(_node_pos("flip_trap")), -2.0, 1.0, 24.0)
 
@@ -161,6 +166,10 @@ func _on_captured(_vid: StringName) -> void:
 func _on_enemy_killed(enemy_id: StringName, _role: StringName) -> void:
 	_play(_sfx["fall"], _enemy_pos(enemy_id), "Sfx", -5.0, randf_range(0.94, 1.05), 16.0)
 
+func _on_actor_hit(origin: Vector3, _who: StringName) -> void:
+	_play(_sfx["grunt"], origin, "Sfx", -4.0, randf_range(0.9, 1.08), 14.0)
+	_play(_sfx["fall"], origin, "Sfx", -7.0, randf_range(0.92, 1.05), 12.0)
+
 func _on_ally_died(ally_id: StringName) -> void:
 	_play(_sfx["fall"], _ally_pos(ally_id), "Sfx", -5.0, 1.0, 16.0)
 
@@ -178,12 +187,12 @@ func _on_ally_commanded(ally_id: StringName, command: StringName) -> void:
 
 func _on_shout(origin: Vector3) -> void:
 	if BattleState.exploring or not BattleState.alarm_rung:
-		EventBus.status_message.emit("你低声说：%s" % Lines.PLAYER_EXPLORE, 2.6)
+		EventBus.speech_line.emit("你低声说：%s" % Lines.PLAYER_EXPLORE, 2.6)
 		_voice_at(Lines.PLAYER_EXPLORE_ID, origin, true)
 		return
 	var i := _player_line_i % Lines.PLAYER_COMBAT.size()
 	_player_line_i += 1
-	EventBus.status_message.emit("你喊：%s" % Lines.PLAYER_COMBAT[i], 2.4)
+	EventBus.speech_line.emit("你喊：%s" % Lines.PLAYER_COMBAT[i], 2.4)
 	_voice_at(Lines.PLAYER_COMBAT_IDS[i], origin, BattleState.player_in_tunnel)
 
 func _on_battle_ended(result: StringName, _reason: StringName) -> void:
@@ -205,6 +214,7 @@ func _tick_bell(delta: float) -> void:
 	var pos := _node_pos("alarm_bell")
 	var left := _bells_left
 	_play(_sfx["bell"], pos, _bus_at(pos), -1.5 * (4 - left), randf_range(0.98, 1.02), 75.0)
+	EventBus.bell_hit.emit()
 	_bells_left -= 1
 	_bell_wait = 0.52
 
@@ -228,7 +238,7 @@ func _villager_shout() -> void:
 	var pos := body.global_position if body else _node_pos("villager_safe_zone")
 	var underground := body == null
 	var prefix := "地道里有人喊：" if underground else "村民："
-	EventBus.status_message.emit(prefix + text, 3.0)
+	EventBus.speech_line.emit(prefix + text, 3.0)
 	_voice_at(vid, pos, underground or BattleState.player_in_tunnel)
 
 func _tick_water(delta: float) -> void:
@@ -323,7 +333,7 @@ func _tick_enemies(_delta: float) -> void:
 			line = Lines.ENEMY_HOLE
 			voice_id = Lines.enemy_voice_id(_enemy_index(body), "hole")
 		if line != "":
-			EventBus.status_message.emit(line, 2.2)
+			EventBus.speech_line.emit(line, 2.2)
 			_enemy_line_cd = 3.4
 			_voice_at(voice_id, body.global_position, body.global_position.y < -1.0 or BattleState.player_in_tunnel)
 
@@ -374,7 +384,7 @@ func _say_enemy_if_near(line: String, pos: Vector3, voice_id: String) -> void:
 		return
 	if pos == Vector3.ZERO or _ear().distance_to(pos) > SPEECH_RANGE + 6.0:
 		return
-	EventBus.status_message.emit(line, 2.4)
+	EventBus.speech_line.emit(line, 2.4)
 	_enemy_line_cd = 3.4
 	_voice_at(voice_id, pos, pos.y < -1.0 or BattleState.player_in_tunnel)
 
@@ -531,6 +541,7 @@ func _build_sfx() -> void:
 	_sfx["wood"] = Tones.wood_break()
 	_sfx["slide"] = Tones.wood_slide()
 	_sfx["fall"] = Tones.body_fall()
+	_sfx["grunt"] = Tones.hit_grunt()
 	_sfx["pack"] = Tones.cloth()
 	_sfx["mine"] = Tones.mine()
 	_sfx["gush"] = Tones.gush()
@@ -715,7 +726,7 @@ func _surface_villager() -> Node3D:
 		if not (n is Node3D):
 			continue
 		var st := int(n.get("state"))
-		if st == int(VillagerAI.State.HIDDEN) or st == int(VillagerAI.State.CAPTURED):
+		if st == int(VillagerAI.State.HIDDEN) or st == int(VillagerAI.State.ESCORTED) or st == int(VillagerAI.State.TRANSFERRED) or st == int(VillagerAI.State.DEAD):
 			continue
 		return n as Node3D
 	return null

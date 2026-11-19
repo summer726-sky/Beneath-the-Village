@@ -22,10 +22,13 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+.cursor/
 
-# Local tool paths
+# Local tool paths / agent scratch
 docs/godot_path.txt
 tools/_cache/
+agent-transcripts/
+*.blend1
 
 # Secrets and machine-local env
 .env
@@ -34,7 +37,13 @@ tools/_cache/
 *.key
 credentials.json
 **/secrets.json
+**/AHOLO_API_KEY*
+**/*api*key*
+user://
 
-# Crash dumps
+# Crash dumps / oversized scratch
 *.dmp
 mono_crash.*.json
+*.crash
+__pycache__/
+*.pyc

@@ -71,52 +71,87 @@ func _spawn_player() -> void:
 
 	player.set_script(load("res://scripts/player/player_controller.gd"))
 	add_child(player)
+	var fx := Node.new()
+	fx.name = "CombatFx"
+	fx.set_script(load("res://scripts/fx/combat_fx.gd"))
+	add_child(fx)
 
 func _spawn_allies() -> void:
+	# 错落站位：甲在东屋廊下，乙在井边北侧，不堆在院心
 	var a1 := CharacterBody3D.new()
 	a1.name = "AllyJia"
 	a1.collision_layer = 8
 	a1.collision_mask = 1
-	a1.position = Vector3(-7.2, 0.2, 0.6)
+	a1.position = Vector3(1.15, 0.2, 1.85)
+	a1.rotation.y = -0.85
 	a1.set_script(load("res://scripts/npc/ally_ai.gd"))
 	add_child(a1)
 	a1.set("ally_name", &"甲")
-	a1.set("default_command", AllyAI.Command.HOLD_PORT)
+	a1.set("default_command", AllyAI.Command.FREE)
 
 	var a2 := CharacterBody3D.new()
 	a2.name = "AllyYi"
 	a2.collision_layer = 8
 	a2.collision_mask = 1
-	a2.position = Vector3(-8.4, 0.2, -1.6)
+	a2.position = Vector3(-11.4, 0.2, -2.8)
+	a2.rotation.y = 1.1
 	a2.set_script(load("res://scripts/npc/ally_ai.gd"))
 	add_child(a2)
 	a2.set("ally_name", &"乙")
-	a2.set("default_command", AllyAI.Command.CLOSE_BARRIER)
+	a2.set("default_command", AllyAI.Command.FREE)
 
 func _spawn_villagers() -> void:
-	var positions := [
-		Vector3(-5.2, 0.2, -0.4),
-		Vector3(-8.6, 0.2, 3.2),
-		Vector3(-3.4, 0.2, 3.4)
+	# 部分在屋里 / 屋间，朝向错落，不全挤院心
+	var specs := [
+		{"pos": Vector3(-9.6, 0.2, 6.9), "yaw": 2.6},   # 北房内
+		{"pos": Vector3(-13.1, 0.2, -1.4), "yaw": 0.4}, # 西屋廊下
+		{"pos": Vector3(-2.8, 0.2, -6.6), "yaw": -0.7}, # 南房附近屋间
 	]
-	for i in positions.size():
+	for i in specs.size():
+		var s: Dictionary = specs[i]
 		var v := CharacterBody3D.new()
 		v.name = "Villager%d" % (i + 1)
 		v.collision_layer = 16
 		v.collision_mask = 1
-		v.position = positions[i]
+		v.position = s["pos"]
+		v.rotation.y = s["yaw"]
 		v.set_script(load("res://scripts/npc/villager_ai.gd"))
 		add_child(v)
 
 func _spawn_enemies() -> void:
-	var specs := [
-		{"role": &"commander", "pos": Vector3(33.2, 0.25, -1.0), "route": [Vector3(20, 0, -1), Vector3(13, 0, 3), Vector3(12, 0, 8), Vector3(2, 0, 8), Vector3(-6, 0, 3)]},
-		{"role": &"rifleman", "pos": Vector3(33.0, 0.25, 0.8), "route": [Vector3(20, 0, 1), Vector3(13, 0, -3), Vector3(12, 0, -8), Vector3(2, 0, -8), Vector3(-6, 0, -2)]},
-		{"role": &"rifleman", "pos": Vector3(32.6, 0.25, 1.6), "route": [Vector3(21, 0, 2), Vector3(13.5, 0, 4), Vector3(12, 0, 8), Vector3(0, 0, 7), Vector3(-5, 0, 1)]},
-		{"role": &"engineer", "pos": Vector3(33.4, 0.25, -0.4), "route": [Vector3(21, 0, 0), Vector3(13, 0, -2), Vector3(12, 0, -7), Vector3(1, 0, -6), Vector3(-8, 0, -3)]},
-		{"role": &"rifleman", "pos": Vector3(32.8, 0.25, 7.2), "route": [Vector3(18, 0, 7.2), Vector3(12, 0, 8), Vector3(2, 0, 8), Vector3(-4, 0, 4)]},
-		{"role": &"rifleman", "pos": Vector3(33.0, 0.25, -6.5), "route": [Vector3(22, 0, -6.5), Vector3(13, 0, -8), Vector3(2, 0, -8), Vector3(-5, 0, -2)]},
+	# 12 人：原 6 编制×2。出生在侦察树左右外侧，先入视野再西进。
+	var base := [
+		{"role": &"commander", "side": 1.0},
+		{"role": &"rifleman", "side": 1.0},
+		{"role": &"rifleman", "side": -1.0},
+		{"role": &"engineer", "side": -1.0},
+		{"role": &"rifleman", "side": 1.0},
+		{"role": &"rifleman", "side": -1.0},
 	]
+	var specs: Array = []
+	for copy_i in 2:
+		for j in base.size():
+			var b: Dictionary = base[j]
+			var side: float = float(b["side"])
+			if copy_i == 1:
+				side = -side
+			if copy_i == 1 and j % 2 == 0:
+				side = -side
+			var z0 := side * (11.5 + float(j) * 0.85 + float(copy_i) * 0.45)
+			var x0 := 26.8 + float(j) * 0.28 + float(copy_i) * 0.4
+			specs.append({
+				"role": b["role"],
+				"pos": Vector3(x0, 0.25, z0),
+				"side": side,
+				"route": [
+					Vector3(24.8, 0, side * 1.8),
+					Vector3(22.6, 0, side * 0.5),
+					Vector3(16.0, 0, side * 2.2),
+					Vector3(12.5, 0, side * 2.8),
+					Vector3(2.0, 0, side * 5.5),
+					Vector3(-5.0, 0, side * 1.8),
+				],
+			})
 	BattleState.enemies_alive = specs.size()
 	for i in specs.size():
 		var s: Dictionary = specs[i]
@@ -132,16 +167,25 @@ func _spawn_enemies() -> void:
 		col.shape = cap
 		col.position.y = 0.8
 		e.add_child(col)
-		var agent := NavigationAgent3D.new()
-		agent.name = "NavigationAgent3D"
-		e.add_child(agent)
 		var vision := RayCast3D.new()
 		vision.name = "VisionRay"
 		vision.target_position = Vector3(0, 0, -18)
 		e.add_child(vision)
 		e.set_script(load("res://scripts/npc/enemy_ai.gd"))
-		add_child(e)
 		e.set("role", s["role"])
+		var duty := "point"
+		var role_name: StringName = s["role"]
+		if role_name == &"commander" and i < 6:
+			duty = "commander"
+		elif role_name == &"engineer":
+			duty = "engineer"
+		elif i % 6 == 4:
+			duty = "rear"
+		elif i % 6 == 5:
+			duty = "late"
+		e.set("duty", duty)
+		e.set("flank_sign", float(s["side"]))
+		add_child(e)
 		e.setup_route(s["route"])
 
 func _spawn_hud() -> void:

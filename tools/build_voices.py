@@ -199,9 +199,9 @@ def main() -> None:
     for index, (tone, speed) in enumerate(profiles):
         speak_japanese("撃て！", OUT / f"enemy_{index}_fire.wav", tone, speed)
         speak_japanese("穴を探せ！", OUT / f"enemy_{index}_hole.wav", tone, speed * 0.96)
+        speak_japanese("前へ！", OUT / f"enemy_{index}_advance.wav", tone, speed)
+        speak_japanese("井戸に水を入れろ！", OUT / f"enemy_{index}_pour.wav", tone, speed * 0.94)
         print("ja", index)
-    speak_japanese("前へ！", OUT / "enemy_0_advance.wav", profiles[0][0], profiles[0][1])
-    speak_japanese("井戸に水を入れろ！", OUT / "enemy_3_pour.wav", profiles[3][0], profiles[3][1])
     print("ja orders", (OUT / "enemy_0_advance.wav").stat().st_size, (OUT / "enemy_3_pour.wav").stat().st_size)
 
 

@@ -45,6 +45,8 @@ func interact(by: Node) -> void:
 	if by is CharacterBody3D and dest:
 		(by as CharacterBody3D).global_position = dest.global_position + Vector3(0, 0.15, 0)
 		(by as CharacterBody3D).velocity = Vector3.ZERO
+		if by.has_method("dip_for"):
+			by.dip_for(0.12)
 		if by.has_method("set_in_tunnel"):
 			by.set_in_tunnel(enters_tunnel)
 		EventBus.status_message.emit("进入地道" if enters_tunnel else "回到地面", 1.5)
@@ -70,6 +72,11 @@ func _on_body_entered(body: Node) -> void:
 	if not discoverable or discovered:
 		return
 	if body.is_in_group("enemies"):
+		# 入口附近发现概率 0.67；未发现则离开后再靠近可再判
+		if randf() > BattleState.ENTRANCE_DISCOVER_CHANCE:
+			BattleState.log_event("敌军未发现入口：%s" % entrance_id)
+			return
 		discovered = true
 		var eid: StringName = body.enemy_id if "enemy_id" in body else StringName(body.name)
 		EventBus.tunnel_entrance_discovered.emit(entrance_id, eid)
+		BattleState.log_event("敌军发现入口：%s" % entrance_id)

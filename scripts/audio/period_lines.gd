@@ -1,7 +1,7 @@
 extends RefCounted
 class_name PeriodLines
 ## 本局口令。按冀中地面吆喝和当前工事来写，不取电影《地道战》台词。
-## 敌军行是日语口令的中文译文。配音用日语，字幕保持这句译文。
+## 敌军口令只写日语，不附中文译文。
 
 const PLAYER_EXPLORE := "先把地道走熟。钟在院子的树下。"
 const PLAYER_EXPLORE_ID := "player_explore"
@@ -22,10 +22,10 @@ const VILLAGER_ALARM_ID := "villager_alarm"
 const VILLAGER_WATER := "鬼子在灌水，快去关隔板！"
 const VILLAGER_WATER_ID := "villager_water"
 
-const ENEMY_ADVANCE := "敌军（日语口令）：向前！"
-const ENEMY_FIRE := "敌军（日语口令）：射击！"
-const ENEMY_HOLE := "敌军（日语口令）：搜洞口！"
-const ENEMY_POUR := "敌军（日语口令）：向井里灌水！"
+const ENEMY_ADVANCE := "前へ！"
+const ENEMY_FIRE := "撃て！"
+const ENEMY_HOLE := "穴を探せ！"
+const ENEMY_POUR := "井戸に水を入れろ！"
 const ENEMY_ADVANCE_ID := "enemy_advance"
 const ENEMY_FIRE_ID := "enemy_fire"
 const ENEMY_FIRE_CMD_ID := "enemy_fire_cmd"
@@ -37,7 +37,8 @@ static func villager_voice_id(slot: int, water: bool) -> String:
 	return "villager_%d_%s" % [who, "water" if water else "alarm"]
 
 static func enemy_voice_id(index: int, kind: String) -> String:
-	return "enemy_%d_%s" % [index, kind]
+	# 12 人编制：后 6 人复用前 6 人声线
+	return "enemy_%d_%s" % [index % 6, kind]
 
 static func ally_voice_id(ally_name: String, feedback: String) -> String:
 	var who := "jia" if ally_name == "甲" else "yi"

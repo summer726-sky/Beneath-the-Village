@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>冉庄地道战 — 项目报告书</title>
+<style>
+  @page {
+    size: A4;
+    margin: 16mm 16mm 18mm 16mm;
+    @bottom-center {
+      content: counter(page);
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      font-size: 9pt;
+      color: #444;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    color: #1c1c1c;
+    background: #fff;
+    font-family: "SimSun", "Songti SC", "Noto Serif SC", serif;
+    font-size: 10.5pt;
+    line-height: 1.62;
+  }
+  h1, h2, h3, .kicker, .sans, th, figcaption, .meta, .tag {
+    font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans SC", sans-serif;
+  }
+  h1 {
+    font-size: 22pt;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin: 0 0 6px;
+    line-height: 1.25;
+  }
+  h2 {
+    font-size: 13.5pt;
+    margin: 18px 0 8px;
+    padding-bottom: 3px;
+    border-bottom: 1.5px solid #1c1c1c;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11.5pt;
+    margin: 12px 0 4px;
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 8px; }
+  .cover {
+    min-height: 250mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    page-break-after: always;
+  }
+  .kicker {
+    font-size: 10pt;
+    letter-spacing: 0.18em;
+    color: #5c4030;
+    margin-bottom: 18px;
+  }
+  .lead {
+    font-size: 12.5pt;
+    line-height: 1.7;
+    margin: 14px 0 18px;
+  }
+  .meta { font-size: 10pt; color: #333; }
+  .meta div { margin: 2px 0; }
+  .rule { height: 0; border: 0; border-top: 2px solid #1c1c1c; margin: 14px 0; }
+  ul, ol { margin: 4px 0 10px; padding-left: 1.3em; }
+  li { margin: 2px 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 6px 0 12px;
+    font-size: 9.2pt;
+    line-height: 1.4;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 0.6pt solid #222;
+    padding: 3px 5px;
+    vertical-align: top;
+    text-align: left;
+  }
+  th { background: #f3efe9; font-weight: 600; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  figure {
+    margin: 8px 0 12px;
+    page-break-inside: avoid;
+  }
+  figcaption {
+    font-size: 9pt;
+    color: #333;
+    margin-top: 4px;
+  }
+  .note {
+    font-size: 9.5pt;
+    border-left: 3px solid #5c4030;
+    padding: 4px 0 4px 10px;
+    margin: 8px 0 12px;
+  }
+  .small { font-size: 9pt; color: #333; }
+  svg { width: 100%; height: auto; display: block; }
+  .avoid { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<section class="cover">
+  <div>
+    <div class="kicker">群核科技 AHOLO 全球 3D AI 黑客松 · 项目报告书</div>
+    <h1>冉庄地道战</h1>
+    <p class="lead">一座能走、能藏、能开枪的冀中院落。看得见的人与器物由 Aholo Lux3D 生成；地道尺寸、碰撞和战术规则留在 Godot 里，避免生成模型挡住已经冻住的出入口。</p>
+    <hr class="rule" />
+    <p>玩家先在院子里认路，或直接钻进村外的树洞，看东边来的搜索队。拉响铜钟以后，村民躲进北房，敌军进洞搜查。胜利只在六名敌军全部消灭时成立。两名村民被捕、地下掩体灌满，或玩家与战友一同阵亡，这一局失败。</p>
+    <p>报告给评委的读法：第 1 节对五项评分，第 2 节是一条三分钟体验，第 3 节是群核任务号，第 4 节写明哪些生成失败了、为什么没有接进关卡。</p>
+  </div>
+  <div class="meta">
+    <div>引擎：Godot 4.7.2，Compatibility / WebGL 2</div>
+    <div>作品形态：第一人称、单机、院落尺度的可玩 Demo</div>
+    <div>成文日期：2026-11-18</div>
+    <div>依据：仓库内设计基线、资产账本与当前脚本。未把尚未导出的网页地址写成已上线。</div>
+  </div>
+</section>
+
+<h2>1. 评分项各自看什么</h2>
+<p>赛事五项为：群核技术栈 30%，有趣程度 25%，创新性 20%，完成度 20%，传播 5%。专家评委占 70%，玩家评委占 30%。下表只列本仓库已经能指到的证据。</p>
+<table>
+  <thead>
+    <tr><th>评分项</th><th class="num">权重</th><th>本作品里的对应事实</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>群核技术栈</td>
+      <td class="num">30%</td>
+      <td>Lux3D 生成并已接入场景的身体与器物见第 3 节。房子空壳、可走体积和枪缝宽度仍是程序几何，因为这些尺寸已经按人体冻住。</td>
+    </tr>
+    <tr>
+      <td>有趣程度</td>
+      <td class="num">25%</td>
+      <td>开场并列「探索地道」和「开始警戒」。探索时敌军不动；警戒时人在树洞里朝东看。钟、枪眼、跳口、拉雷、灌水是同一条地道上的不同用法。</td>
+    </tr>
+    <tr>
+      <td>创新性</td>
+      <td class="num">20%</td>
+      <td>先用程序把 1.1 米净宽的地道和出入口跑通，再让生成模型只替换外观、不改碰撞。绑骨失败的身体不进关卡。</td>
+    </tr>
+    <tr>
+      <td>完成度</td>
+      <td class="num">20%</td>
+      <td>胜负、弹药、复活和封闭测试在仓库测试与状态记录里有结果。Windows 导出和公开网页地址尚未作为本报告的附件完成。</td>
+    </tr>
+    <tr>
+      <td>传播</td>
+      <td class="num">5%</td>
+      <td>小红书话题 #Aholo黑客松 尚未发出。本报告不把它写成已完成。</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>2. 三分钟里能玩到什么</h2>
+<p>画面目标写的是「钟还没响。人还在院子里。」探索时改为「先看这座院子。E 交谈。B 进树洞。」点「开始警戒」或按 B 之后，目标变为从树洞经地道回东屋拉钟，让村民躲进北房，再用地道把搜索队全部消灭。</p>
+
+<figure>
+  <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="院落与地道关系示意图">
+    <rect x="8" y="8" width="704" height="234" fill="#f7f4ef" stroke="#1c1c1c"/>
+    <text x="24" y="32" font-family="Microsoft YaHei, sans-serif" font-size="13" fill="#1c1c1c">示意图，不是实机截图。东在右侧。</text>
+    <rect x="250" y="58" width="150" height="110" fill="#efe6d6" stroke="#1c1c1c"/>
+    <text x="292" y="118" font-family="Microsoft YaHei, sans-serif" font-size="13">院子</text>
+    <rect x="250" y="28" width="150" height="30" fill="#fff" stroke="#1c1c1c"/>
+    <text x="300" y="48" font-family="Microsoft YaHei, sans-serif" font-size="12">北房 · 暗室</text>
+    <rect x="400" y="58" width="36" height="110" fill="#fff" stroke="#1c1c1c"/>
+    <text x="406" y="118" font-family="Microsoft YaHei, sans-serif" font-size="12">东屋</text>
+    <rect x="214" y="58" width="36" height="110" fill="#fff" stroke="#1c1c1c"/>
+    <text x="220" y="118" font-family="Microsoft YaHei, sans-serif" font-size="12">西房</text>
+    <rect x="250" y="168" width="150" height="30" fill="#fff" stroke="#1c1c1c"/>
+    <text x="292" y="188" font-family="Microsoft YaHei, sans-serif" font-size="12">南房</text>
+    <circle cx="300" cy="100" r="7" fill="#5c4030"/>
+    <text x="312" y="96" font-family="Microsoft YaHei, sans-serif" font-size="11">钟</text>
+    <rect x="470" y="90" width="70" height="36" fill="#ddd2c2" stroke="#1c1c1c"/>
+    <text x="482" y="112" font-family="Microsoft YaHei, sans-serif" font-size="12">侦察树</text>
+    <path d="M540 108 H660" stroke="#1c1c1c" stroke-width="1.4" marker-end="url(#arr)"/>
+    <text x="560" y="100" font-family="Microsoft YaHei, sans-serif" font-size="11">敌军自东边来</text>
+    <path d="M505 126 C470 200, 360 214, 325 168" fill="none" stroke="#5c4030" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="360" y="226" font-family="Microsoft YaHei, sans-serif" font-size="11" fill="#5c4030">地道：树洞直道通向东屋，净宽约 1.1 米</text>
+    <defs>
+      <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L6,3 L0,6 Z" fill="#1c1c1c"/>
+      </marker>
+    </defs>
+  </svg>
+  <figcaption>图 1. 地面是四面房子围住的院子，钟在院内。警戒开局在东边侦察树的窄缝里。地道不在地面挖敞口，入口藏在树洞、炕、井、驴槽和北房夹壁。</figcaption>
+</figure>
+
+<h3>建议评委走的一条路</h3>
+<ol>
+  <li>开场点「探索地道」，在院子里看见钟、井、碾、磨和房屋。按 E 与身边的人说话。</li>
+  <li>按 B，或回到开头后点「开始警戒」。人在树洞里，朝东能看见搜索队。</li>
+  <li>沿地道回东屋，拉钟。村民改道躲藏。地面射击变密，一次一名步枪手进洞。</li>
+  <li>在枪眼后开枪。枪眼要贴着缝，左右约 12 度能看出去。开枪以后这个位置才暴露。</li>
+  <li>北房支道可以拉雷。跳口从侧洞上去，落到直道。井下可以挡水；挡不住则掩体进水，这一局失败。</li>
+</ol>
+<p>操作：WASD 移动，Shift 蹲，鼠标转向，左键射击，R 装填，E 交互，F 指挥看向的战友，G 近距离喊话，Q 打开战况，空格跳过开场叙述，Esc 释放鼠标。</p>
+<div class="note">弹药在身上只有一个 8 发弹仓。地道暗室另有 16 发，每次最多取 4 发，取完必须离开再进。生命 3。地面阵亡后蹲在指挥室，约 6 秒后恢复，弹药减半。这些数字来自 <span class="sans">BattleState</span> 与玩家控制器，不是设计稿里的愿望。</div>
+
+<h2>3. 群核生成什么，引擎留下什么</h2>
+<p>赛事要求 Lux3D 参与核心 3D 内容。本作品把「认得出的身体和器物」交给 Lux3D，把「人过不过得去」留在引擎里。生成一整栋房子或一整段可走地道会改变已经冻住的门洞和净宽，所以没有这么做。</p>
+<table>
+  <thead>
+    <tr><th>交给 Lux3D</th><th>留在 Godot</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>民兵、村民、日军身体；锅台、井栏、铜钟、驴槽、石碾、石磨；炕、柜、桌、风箱、粮囤、缸、柴、灯；白杨、草、麦穗；地道段、枪眼墙、跳口框、墙段、灰瓦、机关木板、侦察树树冠。</td>
+      <td>院落与地道的碰撞和净空；枪缝开角；翻板、挡水、拉雷的触发；敌军、村民、战友的行为；胜负；声音只响应事件，不驱动规则。</td>
+    </tr>
+  </tbody>
+</table>
+<p>同一份网格在场景里重复使用。白杨、草丛、麦穗各生成一次。地道段、枪眼墙、跳口框也各生成一次，碰撞盒尺寸不改。六名日军共用一具身体，用帽子和工具区分。玩家本人是第一人称，不显示全身。</p>
+
+<h3>已接入场景的任务</h3>
+<p>任务号来自仓库账本 <span class="sans">docs/AHOLO_BUDGET.md</span>（记到 2026-11-18）。平台没有余额查询接口，账本里的实耗在回执回来之前仍记为 0。下表的「预估」是提交时的预期积分，不是已经对过的账单。</p>
+<table>
+  <thead>
+    <tr><th>任务号</th><th>规格</th><th>内容</th><th>接入</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>8236937</td><td>G1</td><td>战友甲，约四十岁，深靛蓝短褂</td><td>已接入</td></tr>
+    <tr><td>8236945</td><td>G1</td><td>年轻民兵，战友乙共用这具身体，衣色在引擎里调亮</td><td>已接入</td></tr>
+    <tr><td>8236950</td><td>G1</td><td>年长村民</td><td>已接入</td></tr>
+    <tr><td>8236951</td><td>G1</td><td>年轻村民；村民 3 共用，衣色改为灰蓝</td><td>已接入</td></tr>
+    <tr><td>8236961</td><td>G1</td><td>日军身体，六名搜索队员共用</td><td>已接入</td></tr>
+    <tr><td>8281701 / 8281709</td><td>G1</td><td>第三名农妇；侦察树树冠</td><td>已接入，碰撞未改</td></tr>
+    <tr><td>8261567、8261572、8261573、8261577、8261587</td><td>G1</td><td>锅台、井栏、铜钟、驴槽、石碾</td><td>已接入，碰撞未改</td></tr>
+    <tr><td>8261813–8261825、8262113–8262125</td><td>Turbo</td><td>石磨、院树、柴垛、油灯、水缸、炕、柜、八仙桌、风箱、粮囤</td><td>已接入对应节点</td></tr>
+    <tr><td>8281714、8281717、8281722</td><td>Turbo</td><td>灰瓦、夯土墙段、机关木板</td><td>已接入，碰撞未改</td></tr>
+    <tr><td>8304274、8304275、8304276</td><td>Turbo</td><td>白杨、草丛、麦穗，全场景复用一份网格</td><td>已接入田野、菜畦和树行</td></tr>
+    <tr><td>8315981、8315980、8315979</td><td>Turbo</td><td>地道段、枪眼墙、跳口框</td><td>已接入外观，碰撞尺寸未改</td></tr>
+    <tr><td>8326429、8326447</td><td>Turbo</td><td>汉阳造、地道岔口</td><td>账本记为已下载并接入</td></tr>
+  </tbody>
+</table>
+
+<h2>4. 迭代：先走通，再换外观</h2>
+<p>2026-11-16 的实机窗口标题是「冉庄地道战 (DEBUG)」。当时画面是色块：天空、地面和一道墙，没有生成模型。左上角读数是弹药 8/8、生命 3、敌军士气 4、村民安全 0 / 被捕 0 / 共 3、战友存活 2。提示写着从老槐树观察敌情，靠近警报钟按 E。这一阶段的自动冒烟测试通过：警报、击杀、胜负结束、重置。</p>
+<p>尺寸在换模型之前冻住。主通道净宽约 1.1 米，净高约 1.6 米。玩家和进洞的敌军用约 1.1 米的通过高度。树洞内径约 1.2 米，朝东的观察缝仍是窄缝，人不能从地面走进那棵树。枪眼是墙后的窄缝，贴着缝左右约 12 度、略抬头能看出去。</p>
+<p>外观替换时碰撞盒保持原位。锅台是朝院的射击位，不是地道入口。门扇用程序木板靠在门洞旁，不挡路。步枪、钢盔、望远镜在第一次接入时没有骨骼挂点，没有硬挂到身上，避免武器漂在体外。</p>
+
+<h3>没有接进关卡的生成</h3>
+<table>
+  <thead>
+    <tr><th>任务号</th><th>结果</th><th>处理</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>8282073、8282144、8283261</td>
+      <td>战友甲、年长村民、年轻民兵的三次绑骨都失败。原因是双臂贴身，不是 A/T 姿势。</td>
+      <td>未接入。预估约 45 积分，是否扣费等待回执。</td>
+    </tr>
+    <tr>
+      <td>8326408、8326419</td>
+      <td>改用 A 姿势重新生成日军和民兵，准备再绑骨。账本记为进行中。</td>
+      <td>未当作已完成的骨骼角色。</td>
+    </tr>
+    <tr>
+      <td>8326424</td>
+      <td>三八式步枪，账本记为进行中。</td>
+      <td>未写成已经挂在敌军手上。</td>
+    </tr>
+  </tbody>
+</table>
+<div class="note">仓库里保存的角色与器物 PNG 是模型的纹理图集，展开后是重复的衣料、钟面和夯土块，不是给评委看的效果图。关键效果应以实机画面为准。提交前建议补四张：换上模型后的院子、树缝里看见的搜索队、地道枪眼、拉钟后的字幕。2026-11-16 的灰盒画面嵌在聊天软件截图里，含有无关窗口，因此没有放进本报告。</div>
+
+<h2>5. 规则、验证和还没做完的部分</h2>
+<h3>一局里的胜负</h3>
+<p>敌军编制 6 人：分队长、两名尖兵、工兵、殿后、后进。现行胜利判定在敌军人数到 0 时触发，结算原因是「敌军全部消灭」。士气撤退的检查函数直接返回，所以消灭以外的撤退不算胜利。</p>
+<p>失败有三条：两名村民被捕；灌水开始后 25 秒内没有关上挡水隔板，掩体进水；玩家生命耗尽且战友也全部阵亡。拉钟、躲藏本身不构成胜利。</p>
+<p>史料表述停在「冀中平原 · 冉庄」。服装按抗战时期冀中农村和下乡搜索的常见装束来写：土布短褂、偏襟袄；黄褐军衣、缠腿、战斗帽。不写未经核实的具体年份，不照电影《地道战》的服装和台词，不给敌军现代迷彩或军旗。</p>
+
+<h3>已经有记录的验证</h3>
+<table>
+  <thead>
+    <tr><th>检查</th><th>记录中的结果</th><th>还不能当成什么</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>冒烟测试</td><td>警报、击杀、胜负结束、重置通过</td><td>不是完整的一局手玩录像</td></tr>
+    <tr><td>地道封闭与空间审计</td><td>通过。死路先延伸再封，跳口和暗室有墙</td><td>不代替实机里看墙缝</td></tr>
+    <tr><td>复活</td><td>通过。地面阵亡后在指挥室蹲姿恢复</td><td>状态文档写明仍待实机再走一遍</td></tr>
+    <tr><td>机关封闭</td><td>翻板须先抽棍；北房支道一处拉雷；枪眼开枪后才暴露</td><td>夹壁上房和毒气本轮没有做</td></tr>
+    <tr><td>声音</td><td>事件驱动。中文三名男声、三名女声；六名日军各一套日语口令，画面给中文译文</td><td>状态文档写明待实机听钟、脚步、枪、拉雷和灌水</td></tr>
+  </tbody>
+</table>
+<p>声音来源写在 <span class="sans">audio/voice/CREDITS.txt</span>。中文男声使用 Piper 音色 zh_CN-chaowen-medium，上游清单标为 CC0。日军口令使用 Open JTalk 与 HTS 声库 NIT ATR503 M001，许可为 CC BY 3.0，权利人包括名古屋工业大学与 HTS Working Group。三名村民的句子由本机 Windows 语音合成后再区分音高，仓库里只有合成好的句子，不含语音字体本身。这些声音不是冀中方言，也不是史料原声。</p>
+
+<h3>提交时仍然缺的材料</h3>
+<ul>
+  <li>换上 Lux3D 模型之后的实机效果图四张，见第 4 节。</li>
+  <li>含真实运行画面的 60–90 秒演示视频。视频应从导出的游戏窗口录，不从编辑器里的聊天记录截。</li>
+  <li>公开可玩链接。工程已选用 Compatibility 渲染，便于以后做单线程网页导出；本报告成文时还没有这个地址。</li>
+  <li>小红书公开帖。</li>
+</ul>
+<p class="small">本报告根据 2026-11-18 仓库中的设计基线、资产账本、资产登记和脚本整理。账本后若又有新的任务号，以账本追加行为准，不把「进行中」写成「已在关卡里动画化」。</p>
+
+</body>
+</html>

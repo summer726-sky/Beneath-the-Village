@@ -34,9 +34,10 @@ func begin_play() -> void:
 	BattleState.exploring = false
 	BattleState.phase = BattleState.Phase.OBSERVE
 	BattleState.player_can_control = true
+	BattleState.enemy_reveal_at = BattleState.now_sec() + randf_range(BattleState.SIDE_ENTER_MIN, BattleState.SIDE_ENTER_MAX)
 	_place_at_marker("lookout_spawn", -PI * 0.5)
 	EventBus.battle_phase_changed.emit(&"OBSERVE")
-	EventBus.status_message.emit("你在树洞里。东边是敌军。E 从树洞进地道，回东屋拉钟。", 5.5)
+	EventBus.status_message.emit("你在树洞里。东边田埂外的敌军会从左右进入视野，再向村子推进。E 进地道回东屋拉钟。", 5.8)
 
 func _place_at_marker(group_name: String, yaw: float) -> void:
 	var spawn := get_tree().get_first_node_in_group(group_name) as Node3D
@@ -57,7 +58,6 @@ func enter_combat() -> void:
 		return
 	BattleState.phase = BattleState.Phase.COMBAT
 	EventBus.battle_phase_changed.emit(&"COMBAT")
-	EventBus.status_message.emit("敌军正在接近！保护村民，利用地道与机关。", 4.0)
 
 func show_result(result: StringName, reason: StringName) -> void:
 	if flow == FlowState.RESULT:

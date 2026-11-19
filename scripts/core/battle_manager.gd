@@ -10,6 +10,9 @@ func _ready() -> void:
 	EventBus.trap_triggered.connect(_on_trap_triggered)
 	EventBus.water_barrier_closed.connect(_on_water_barrier_closed)
 	EventBus.villager_captured.connect(_on_villager_captured)
+	EventBus.villager_transferred.connect(_on_villager_transferred)
+	EventBus.villager_killed.connect(_on_villager_killed)
+	EventBus.villager_rescued.connect(_on_villager_rescued)
 	EventBus.villager_entered_shelter.connect(_on_villager_sheltered)
 	EventBus.alarm_triggered.connect(_on_alarm)
 	EventBus.water_started.connect(_on_water_started)
@@ -33,6 +36,7 @@ func adjust_morale(delta_val: int, reason: String) -> void:
 	BattleState.log_event("%s，剩余敌军 %d" % [reason, BattleState.enemies_alive])
 
 func _check_retreat() -> void:
+	# 设计基线：取消士气撤退，胜利只算全歼。保留函数以免旧调用报错。
 	return
 
 func _trigger_retreat(reason: StringName) -> void:
@@ -40,8 +44,11 @@ func _trigger_retreat(reason: StringName) -> void:
 	EventBus.enemy_retreated.emit()
 	BattleState.log_event(str(reason))
 	# 隐蔽本身不能胜利；撤退才算防护/战术成果
-	if BattleState.villagers_captured >= 2:
-		_fail(&"CAPTURE", &"两名村民被捕")
+	if BattleState.villagers_transferred >= 2:
+		_fail(&"CAPTURE", &"两名村民被押到瞭望树")
+		return
+	if BattleState.villagers_killed >= 2:
+		_fail(&"KILLED", &"两名村民被杀害")
 		return
 	if BattleState.bunker_flooded:
 		_fail(&"FLOOD", &"地下掩体进水")
@@ -101,8 +108,23 @@ func _on_water_barrier_closed() -> void:
 func _on_villager_captured(_villager_id: StringName) -> void:
 	BattleState.villagers_captured += 1
 	adjust_morale(1, "村民被捕")
-	if BattleState.villagers_captured >= 2:
-		_fail(&"CAPTURE", &"两名村民被捕")
+	# 失败看「押到瞭望树」或「被杀」人数，不在刚抓住时立刻判负
+
+func _on_villager_transferred(_villager_id: StringName) -> void:
+	BattleState.villagers_transferred += 1
+	BattleState.log_event("村民押至瞭望树 %d" % BattleState.villagers_transferred)
+	if BattleState.villagers_transferred >= 2:
+		_fail(&"CAPTURE", &"两名村民被押到瞭望树")
+
+func _on_villager_killed(_villager_id: StringName) -> void:
+	BattleState.villagers_killed += 1
+	# 被捕计数里若还在押送则不重复加 captured；处决后计入杀害
+	adjust_morale(1, "村民被杀害")
+	if BattleState.villagers_killed >= 2:
+		_fail(&"KILLED", &"两名村民被杀害")
+
+func _on_villager_rescued(_villager_id: StringName) -> void:
+	BattleState.villagers_captured = maxi(0, BattleState.villagers_captured - 1)
 
 func _on_villager_sheltered(_vid: StringName, _sid: StringName) -> void:
 	BattleState.villagers_safe = mini(BattleState.villagers_total, BattleState.villagers_safe + 1)
